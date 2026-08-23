@@ -158,3 +158,11 @@ never drift from the save.
 
 No ads, no purchases, no backend. The game installs as a PWA and plays fully
 offline after first load.
+
+## SkyNeet Survivors
+
+A second game lives at `skyneet.html`, built from the SkyNeet Survivors lore
+bible. The axiom is: Goliath hardware is a body; competence was a service.
+Campaign state persists; operations are disposable. Lighting an NNN is last
+in the build graph. Competence = 1 − lethality until a Sancient remembers
+for the swarm. The trunk is one decision: cut the Net, or hold it.

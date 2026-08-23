@@ -14,6 +14,10 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: true,
     rollupOptions: {
+      input: {
+        main: 'index.html',
+        skyneet: 'skyneet.html',
+      },
       output: {
         manualChunks: undefined,
       },
