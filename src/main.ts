@@ -98,5 +98,5 @@ function start(classId: string, name: string) {
   }
   requestAnimationFrame(loop);
 
-  Object.assign(window as never, { world, queue });
+  Object.assign(window as never, { world, queue, renderer, hud });
 }

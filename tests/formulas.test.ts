@@ -15,7 +15,9 @@ describe('formulas', () => {
   });
 
   it('the xp curve is monotonic through the level 1-10 slice', () => {
-    for (let l = 1; l < 10; l++) expect(F.xpToLevel(l + 1)).toBeGreaterThan(F.xpToLevel(l));
+    // The table ends at 9 -> 10; level 10 is the zone cap, so there is no next entry.
+    for (let l = 1; l < 9; l++) expect(F.xpToLevel(l + 1)).toBeGreaterThan(F.xpToLevel(l));
+    expect(F.XP_TABLE.length).toBe(9);
   });
 
   it('stamina past the free points is worth ten health each', () => {

@@ -107,7 +107,10 @@ export class Renderer {
     // Never let the camera sink under the terrain.
     want.y = Math.max(want.y, heightAt(want.x, want.z) + 1.2);
     this.camera.position.lerp(want, 0.35);
-    this.camera.lookAt(focus);
+    // On a tall portrait screen the HUD owns the bottom third, so aim below the player
+    // to push the character up into the clear part of the frame.
+    const lift = this.camera.aspect < 0.85 ? 3.4 : 0;
+    this.camera.lookAt(focus.x, focus.y - lift, focus.z);
   }
 
   /** Screen-space projection for DOM nameplates and floating combat text. */
