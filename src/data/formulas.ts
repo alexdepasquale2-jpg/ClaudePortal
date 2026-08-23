@@ -99,7 +99,7 @@ export const THREAT_PULL_MELEE = 1.1;
 export const THREAT_PULL_RANGED = 1.3;
 
 /** Aggro radius shrinks/grows ~1 yard per level of difference, floored at 5. */
-export const BASE_AGGRO_YD = 18;
+export const BASE_AGGRO_YD = 12;
 export const AGGRO_PER_LEVEL = 1;
 export const MIN_AGGRO_YD = 5;
 export const SOCIAL_AGGRO_YD = 10;
@@ -112,11 +112,11 @@ export const MOVE_SPEED = 7;      // yards/sec, Classic run speed
 export const MOB_MOVE_SPEED = 6.5;
 export const RESPAWN_MS = 25000;
 
-/** XP curve: Classic's is 
- *  xp(L) = ((8*L) + diff(L)) * mobXpBase(L) * 5, but for a 1-10 slice the polynomial below matches
- *  the real table within a few percent and keeps levelling snappy. */
+/** Classic's level 1-10 experience table, verbatim — the curve is data, not a fitted polynomial. */
+export const XP_TABLE = [400, 900, 1400, 2100, 2800, 3600, 4500, 5400, 6500];
+
 export function xpToLevel(level: number): number {
-  return Math.round((40 * level * level + 360 * level - 380) / 10) * 10;
+  return XP_TABLE[level - 1] ?? XP_TABLE[XP_TABLE.length - 1];
 }
 
 /** Mob XP: (5 * mobLevel + 45) at low level, modified by level delta. */
@@ -139,8 +139,8 @@ export function xpLevelMod(playerLevel: number, mobLevel: number): number {
 export const RESTED_MULT = 2;
 export const RESTED_PER_HOUR_INN = 0.05 / 8;
 export const RESTED_CAP_LEVELS = 1.5;
-/** Game time runs 120x real time, so an inn rest pays out in minutes, not hours. */
-export const TIME_SCALE = 120;
+/** Game time runs 30x real time: a full day/night cycle takes 48 real minutes. */
+export const TIME_SCALE = 30;
 export const DAY_LENGTH_MS = 24 * 3600_000 / TIME_SCALE;
 
 export const VENDOR_SELL_RATIO = 0.25; // vendors buy at a quarter of the listed price

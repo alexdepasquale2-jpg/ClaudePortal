@@ -4,6 +4,7 @@ import { MOBS } from '../data/mobs';
 import { ITEMS, SUFFIXES, SUFFIX_POOLS as POOLS } from '../data/items';
 import { STARTER_ZONE } from '../data/zone.starter';
 import { AURAS } from '../data/auras';
+import { TALENTS } from '../data/talents';
 import { mulberry32, randRange, randInt } from './rng';
 import type { ItemInstance, ItemStats, Stats, Unit, World, PowerType, Vec } from './types';
 
@@ -64,6 +65,14 @@ export function effStats(w: World, u: Unit): Stats & { ap: number; crit: number;
     for (const k of Object.keys(m) as (keyof typeof m)[]) {
       const v = (m[k] as number) * a.stacks;
       if (k in s) (s as never as Record<string, number>)[k] += v;
+    }
+  }
+  if (u.kind === 'player') {
+    for (const [id, rank] of Object.entries(w.player.talents)) {
+      const t = TALENTS[id]; if (!t || !rank) continue;
+      if (t.effect.kind === 'ap') s.ap += t.effect.value * rank;
+      if (t.effect.kind === 'crit') s.crit += t.effect.value * rank;
+      if (t.effect.kind === 'spellPower') s.spellPower += t.effect.value * rank;
     }
   }
   s.armor += s.agi * F.ARMOR_PER_AGI;

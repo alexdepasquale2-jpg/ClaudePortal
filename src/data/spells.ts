@@ -24,7 +24,7 @@ export const SPELLS: Record<string, SpellDef> = {
     id: 'rend', name: 'Rend', icon: 'RD', castMs: 0, cost: 10, resource: 'rage',
     cooldownMs: 0, rangeYd: M, school: 'physical', gcd: true,
     effects: [{ kind: 'aura', auraId: 'rend' }],
-    reqLevel: 4, classId: 'warrior', requiresTargetHostile: true, trainCostCopper: 100,
+    reqLevel: 2, classId: 'warrior', requiresTargetHostile: true, trainCostCopper: 100,
     desc: 'Wounds the target, dealing physical damage over 9 sec.',
   },
   // Overpower only fires in the 5s window after the target dodges you — the aura is that window.
@@ -70,7 +70,7 @@ export const SPELLS: Record<string, SpellDef> = {
     cooldownMs: 0, rangeYd: 30, school: 'frost', gcd: true,
     effects: [{ kind: 'damage', school: 'frost', min: 11, max: 15, spCoef: 0.5 },
               { kind: 'aura', auraId: 'frostbolt_slow' }],
-    reqLevel: 4, classId: 'mage', requiresTargetHostile: true, trainCostCopper: 100,
+    reqLevel: 2, classId: 'mage', requiresTargetHostile: true, trainCostCopper: 100,
     desc: 'Launches a bolt of frost, slowing the target.',
   },
   fire_blast: {

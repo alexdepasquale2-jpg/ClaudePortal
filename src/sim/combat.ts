@@ -18,12 +18,13 @@ export function weaponOf(w: World, u: Unit) {
   return { min: d.dmg.min, max: d.dmg.max, speedMs: d.attackSpeedMs, kind: 'sword' as const, broken: false };
 }
 
-/** Classic weapon damage = (rolled weapon damage + AP/14 * weaponSpeed). */
+/** Classic weapon damage = (rolled weapon damage + AP/14 * weaponSpeed).
+ *  Mob damage ranges in data are already final numbers, so no attack power is added to them. */
 export function weaponSwingDamage(w: World, u: Unit, bonusFlat = 0): number {
   const wep = weaponOf(w, u);
-  const a = effStats(w, u);
   const speed = wep.speedMs / 1000;
-  let base = randRange(w.rng, wep.min, wep.max) + (a.ap / F.AP_TO_DPS) * speed + bonusFlat;
+  const ap = u.kind === 'player' ? effStats(w, u).ap : 0;
+  let base = randRange(w.rng, wep.min, wep.max) + (ap / F.AP_TO_DPS) * speed + bonusFlat;
   if (wep.broken) base *= 0.5; // broken gear halves output
   return base;
 }
