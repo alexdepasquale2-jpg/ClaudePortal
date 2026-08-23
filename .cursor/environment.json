@@ -1,0 +1,14 @@
+{
+  "name": "SkyNeet Survivors",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "cd recurse && npm run dev -- --host",
+      "description": "Vite dev server for the game. Serves the app at http://localhost:5173."
+    }
+  ],
+  "ports": [
+    { "name": "vite dev server", "port": 5173 }
+  ]
+}
