@@ -149,8 +149,8 @@ export interface GameState {
 /** Kept out of the main save; PNG thumbnails are bulky and regenerable. */
 export type SigilCache = Record<string, string>;
 
-export const FEED_LIMIT = 400;
-export const HISTORY_LIMIT = 500;
+export const FEED_LIMIT = 2500;
+export const HISTORY_LIMIT = 2500;
 
 // ---------------------------------------------------------------------------
 // construction

@@ -43,7 +43,7 @@ import {
   lexiconByCategory,
   loreCoverage,
 } from '../../engine/lore';
-import type { CodexEntry, SigilCache } from '../../engine/state';
+import { HISTORY_LIMIT, type CodexEntry, type SigilCache } from '../../engine/state';
 import { readableAccent } from '../palette';
 import { MODE_LABELS, sigilThumbnail, type SigilMode } from '../sigil';
 import { dur, fmt, pct, plural, stamp } from './format';
@@ -301,6 +301,8 @@ function tile(
             kv('Relic', `${lore.relic.name}. ${lore.relic.use}`),
             kv('Rite', lore.rite),
             kv('Trade staple', lore.trade),
+            kv('Lodge', lore.lodge),
+            kv('Chronicler', lore.chronicler),
             kv('Also known as', lore.aliases.join('; ')),
             kv('Economy', lore.economic),
           ]),
@@ -472,7 +474,7 @@ export function openStats(deps: ScreenDeps): void {
             h('th', { text: 'When' }),
           ),
         );
-        for (const e of history.slice(0, 200)) {
+        for (const e of history.slice(0, HISTORY_LIMIT)) {
           table.appendChild(
             h(
               'tr',
@@ -702,7 +704,7 @@ export function openWelcomeBack(summary: OfflineSummary, deps: ScreenDeps): void
       h('p', {
         class: 'muted',
         text: capped
-          ? `Offline progress is capped at twelve hours, so ${dur(summary.cappedMs)} was simulated.`
+          ? `Offline progress is capped at forty-eight hours, so ${dur(summary.cappedMs)} was simulated.`
           : `All ${dur(summary.cappedMs)} of it was simulated.`,
       }),
       section('While you were gone', [
@@ -715,8 +717,17 @@ export function openWelcomeBack(summary: OfflineSummary, deps: ScreenDeps): void
 
     if (summary.discoveries.length) {
       const list = h('ul', { class: 'plain' });
-      for (const d of summary.discoveries.slice(0, 20)) {
+      const shown = summary.discoveries.slice(0, 80);
+      for (const d of shown) {
         list.appendChild(h('li', { text: `${d.name} — ${speciesTitle(d.key)}` }));
+      }
+      if (summary.discoveries.length > shown.length) {
+        list.appendChild(
+          h('li', {
+            class: 'muted',
+            text: `…and ${summary.discoveries.length - shown.length} more in the Codex.`,
+          }),
+        );
       }
       body.appendChild(h('div', { class: 'section' }, h('h3', { text: 'Discovered' }), list));
     }
@@ -888,6 +899,8 @@ export function openHelp(): void {
         kv('Houses', 'Six orders claim the six archetypes. Their mottos are in the Lexicon tab.'),
         kv('Strata', 'Origin Shelf, Sighted Marches, Repeating Galleries, Unobserved Vaults.'),
         kv('Marks', 'Unmarked, Folded, Repeating, Severed, Extra Limb — the five anomaly states.'),
+        kv('Tongues', 'Six shipped alphabets, then derived banks. Genesis replaces the names, not the catalogue.'),
+        kv('Laws', 'Sixteen laws of recursion, one per Epoch, held until Genesis spends them.'),
       ]),
       h('p', {
         class: 'muted small',

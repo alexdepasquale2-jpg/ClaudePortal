@@ -57,10 +57,10 @@ import {
   type Achievement,
 } from './achievements';
 
-/** Hard ceiling on live nodes. Well past what the renderer needs to survive. */
-export const MAX_NODES = 20000;
-/** Offline progress is capped here — validated, do not raise casually. */
-export const OFFLINE_CAP_MS = 12 * 60 * 60 * 1000;
+/** Hard ceiling on live nodes. Raised for long MMO-scale trees. */
+export const MAX_NODES = 100000;
+/** Offline progress is capped here — a liturgical two days in the Vaults. */
+export const OFFLINE_CAP_MS = 48 * 60 * 60 * 1000;
 /** Auto-buyers deliberately leave a margin, so attentive play still wins. */
 export const AUTO_SPEND_FRACTION = 0.9;
 export const AUTO_DESCEND_INTERVAL = 6;
@@ -441,9 +441,9 @@ export class Engine {
   // -------------------------------------------------------------------------
 
   /**
-   * Catch up on time away, capped at 12 hours. Simulated in real steps rather
-   * than multiplied out, so pulse phase, auto-buyers and auto-descend all
-   * behave the way they would have if the tab had stayed open.
+   * Catch up on time away, capped at forty-eight hours. Simulated in real
+   * steps rather than multiplied out, so pulse phase, auto-buyers and
+   * auto-descend all behave the way they would have if the tab had stayed open.
    */
   offline(elapsedMs: number, now = Date.now()): OfflineSummary {
     const capped = Math.max(0, Math.min(elapsedMs, OFFLINE_CAP_MS));
@@ -454,9 +454,9 @@ export class Engine {
 
     const seconds = capped / 1000;
     if (seconds > 0) {
-      // Bounded step count keeps a 12h return from freezing the tab; 0.5s is
+      // Bounded step count keeps a long return from freezing the tab; 0.5s is
       // fine enough that pulse generators still average out correctly.
-      const steps = Math.max(1, Math.min(4000, Math.ceil(seconds / 0.5)));
+      const steps = Math.max(1, Math.min(12000, Math.ceil(seconds / 0.5)));
       const dt = seconds / steps;
       for (let i = 0; i < steps; i++) this.step(dt, 0);
     }

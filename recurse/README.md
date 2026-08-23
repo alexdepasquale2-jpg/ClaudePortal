@@ -93,7 +93,7 @@ src/engine/     pure, no DOM, no clock, no storage
   lore.ts         world bible: houses, strata, marks, lexicon, dossiers, annals
   flat.ts         the same rate maths over typed arrays, for the worker
   state.ts        save schema, versioned migrations, KV storage adapter
-  epochs.ts       Collapse / Epoch / Genesis, and the eight laws of recursion
+  epochs.ts       Collapse / Epoch / Genesis, and the sixteen laws of recursion
   actions.ts      the Engine — purchases, descent, codex, automation, offline
   achievements.ts a bounded authored set, worth under six Collapses in total
 src/render/     canvas, DOM, palette
@@ -113,23 +113,25 @@ about both.
   and anomaly into one of 120 species. First encounters are logged permanently
   with a procedural description assembled from dictionaries — nothing is
   written per species — and a cached sigil thumbnail. The Codex also holds a
-  world bible: six houses, four strata, five marks, three tongues, eight laws,
-  and a per-species field dossier (designation, relic, rite, harvest, myth)
-  generated on read from `src/engine/lore.ts`. Annals are assembled from the
-  save’s own prestige history. **The codex survives Collapse, Epoch and
-  Genesis.** Only an explicit, typed-confirmation erase clears it. That
-  invariant has its own tests.
+  world bible: six houses, four strata, five marks, six tongues, sixteen laws,
+  lodges, chroniclers, and a per-species field dossier generated on read from
+  `src/engine/lore.ts`. Annals are assembled from the save’s own prestige
+  history. **The codex survives Collapse, Epoch and Genesis.** Only an explicit,
+  typed-confirmation erase clears it. That invariant has its own tests.
 - **Prestige, three tiers.** Collapse at 1e9 root output grants +0.5 global
   multiplier. Epoch, at 12 Collapses, spends those for a permanently higher
-  door exponent and one new law of recursion. Genesis, at 8 Epochs, resets the
+  door exponent and one new law of recursion. Genesis, at 16 Epochs, resets the
   laws and the epochs but grants more exponent than they were worth, and swaps
-  the phoneme banks the game names things from — derived from your own save's
-  history, so no two players reach the same alphabet by the same route.
+  the phoneme banks the game names things from — six shipped tongues, then
+  derived banks from your own save's history, so no two players reach the same
+  alphabet by the same route.
 - **Automation.** Per-generator auto-buyers (after 2 Collapses) spend at most
   90% of a layer's bank, so an attentive player can always out-time them.
   Auto-descend unlocks at Epoch 2.
-- **Offline progress**, capped at 12 hours, simulated in real steps rather than
+- **Offline progress**, capped at 48 hours, simulated in real steps rather than
   multiplied out, and always reported in a modal — never a silent top-up.
+  Live trees may hold 100,000 nodes; the discovery feed and prestige history
+  each keep 2,500 entries.
 - **Save export/import** as JSON, treated as the primary defence against data
   loss. Import runs through the same hostile-input hydration as a normal load:
   a corrupt layer cannot inject NaN into the rate pass.

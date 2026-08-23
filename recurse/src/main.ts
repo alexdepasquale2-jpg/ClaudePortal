@@ -567,7 +567,7 @@ class Game {
 
   private renderMiniFeed(): void {
     if (!this.els.discoveries) return;
-    const feed = this.engine.state.meta.feed.slice(0, 12);
+    const feed = this.engine.state.meta.feed.slice(0, 24);
     this.els.discoveries.textContent = '';
     if (!feed.length) {
       this.els.discoveries.appendChild(

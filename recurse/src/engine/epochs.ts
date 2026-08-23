@@ -3,7 +3,7 @@
  *
  *   Collapse  root lifetime >= GOAL      -> +0.5 permanent global multiplier
  *   Epoch     COLLAPSES_PER_EPOCH        -> +E, and one new law of recursion
- *   Genesis   EPOCHS_PER_GENESIS         -> +E permanently, new phoneme bank
+ *   Genesis   EPOCHS_PER_GENESIS (16)    -> +E permanently, new phoneme bank
  *
  * Each tier is roughly an order of magnitude further out than the one below
  * it, and none of them touches `meta`. The codex is not prestige currency.
@@ -15,13 +15,14 @@ import {
   bankFor,
   newRun,
   randomSeed,
+  HISTORY_LIMIT,
   type GameState,
   type HistoryEntry,
   type Progress,
 } from './state';
 
 export const COLLAPSES_PER_EPOCH = 12;
-export const EPOCHS_PER_GENESIS = 8;
+export const EPOCHS_PER_GENESIS = 16;
 
 /** Collapse's permanent contribution to the global multiplier. */
 export const COLLAPSE_MULT_STEP = 0.5;
@@ -135,6 +136,72 @@ export const EPOCH_LAWS: EpochLaw[] = [
       r.endowmentMult = 10;
     },
   },
+  {
+    id: 'plenitude',
+    name: 'Law of Plenitude',
+    blurb: 'New nodes are born holding twice whatever endowment the other laws already grant.',
+    apply: (r) => {
+      r.endowmentMult *= 2;
+    },
+  },
+  {
+    id: 'proliferation',
+    name: 'Law of Proliferation',
+    blurb: 'Anomalies surface in one node out of seven.',
+    apply: (r) => {
+      r.anomalyRate = Math.max(r.anomalyRate, 1 / 7);
+    },
+  },
+  {
+    id: 'undertow',
+    name: 'Law of Undertow',
+    blurb: 'Cascade doors exponentiate still harder — ×1.6 on E.',
+    apply: (r) => {
+      r.cascadeMult = Math.max(r.cascadeMult, 1.6);
+    },
+  },
+  {
+    id: 'solitude',
+    name: 'Law of Solitude',
+    blurb: 'Void nodes burn at ×2.5 raw when left alone.',
+    apply: (r) => {
+      r.voidRaw = Math.max(r.voidRaw, 2.5);
+    },
+  },
+  {
+    id: 'ascent',
+    name: 'Law of Ascent',
+    blurb: 'The door exponent gains a further +0.05.',
+    apply: (r) => {
+      r.e += 0.05;
+    },
+  },
+  {
+    id: 'aperture',
+    name: 'Law of Aperture',
+    blurb: 'Doors normalise against 7 — every child counts for more.',
+    apply: (r) => {
+      r.k = Math.min(r.k, 7);
+    },
+  },
+  {
+    id: 'chorus',
+    name: 'Law of Chorus',
+    blurb: 'The door exponent gains +0.04, and anomalies become a little more common (1/8).',
+    apply: (r) => {
+      r.e += 0.04;
+      r.anomalyRate = Math.max(r.anomalyRate, 1 / 8);
+    },
+  },
+  {
+    id: 'bequest',
+    name: 'Law of Bequest',
+    blurb: 'New nodes are born twenty times richer, and doors normalise against 6.',
+    apply: (r) => {
+      r.endowmentMult = Math.max(r.endowmentMult, 20);
+      r.k = Math.min(r.k, 6);
+    },
+  },
 ];
 
 export function lawById(id: string): EpochLaw | undefined {
@@ -246,7 +313,9 @@ export interface PrestigeResult {
 
 function record(state: GameState, entry: HistoryEntry): void {
   state.meta.history.push(entry);
-  if (state.meta.history.length > 500) state.meta.history.splice(0, state.meta.history.length - 500);
+  if (state.meta.history.length > HISTORY_LIMIT) {
+    state.meta.history.splice(0, state.meta.history.length - HISTORY_LIMIT);
+  }
 }
 
 function resetRun(state: GameState, now: number, seed?: number): void {

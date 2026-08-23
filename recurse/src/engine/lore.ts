@@ -270,6 +270,27 @@ export const LANGUAGES: Record<string, { bank: PhonemeBank; name: string; rite: 
     note:
       'Liminal is spoken in the Galleries more than it is spoken on the Shelf. Host cartographers use it to mark doors they have not yet decided to open.',
   },
+  Serrated: {
+    bank: BANKS[3],
+    name: 'Serrated',
+    rite: 'A cutting dialect. Clustered onsets, sharp codas, names that sound like they were filed, not spoken.',
+    note:
+      'Serrated arrives after the third Genesis. The Compact likes it for bills. The School likes it because every name already sounds like it has been shortened once.',
+  },
+  Auroral: {
+    bank: BANKS[4],
+    name: 'Auroral',
+    rite: 'A high, open tongue. Soft onsets, long nuclei, names that carry farther than they should on the Shelf.',
+    note:
+      'Auroral is the Concord’s favourite late language. A chord named in it can be heard two doors down, which the Host considers a security problem and a sacrament.',
+  },
+  Cavern: {
+    bank: BANKS[5],
+    name: 'Cavern',
+    rite: 'A low tongue. Heavy onsets, round vowels, names that sit in the chest and do not bounce.',
+    note:
+      'Cavern is what the Vaults speak when they bother. Abyssal houses write it on closed doors so the next observer knows the room has already decided its own name.',
+  },
 };
 
 export type DangerClass = 'benign' | 'watched' | 'hostile' | 'interdicted';
@@ -307,6 +328,8 @@ export interface LoreDossier {
   fieldNotes: string[];
   myth: string;
   economic: string;
+  lodge: string;
+  chronicler: string;
 }
 
 export interface LexiconEntry {
@@ -327,27 +350,27 @@ export interface Chronicle {
 // ---------------------------------------------------------------------------
 
 const EPITHETS: Record<Arch, string[]> = {
-  steady: ['the Unhurried', 'of the Flat Account', 'Who Does Not Bargain', 'Keeper of the First Rate', 'the Patient Yield'],
-  pulse: ['of the Fixed Period', 'Who Breathes on Schedule', 'the Second Breath', 'Tide-Named', 'of the Unrenegotiated Beat'],
-  decay: ['the Honest Diminisher', 'of the Falling Margin', 'Who Measures Less', 'Ledger-True', 'the Sincere Sink'],
-  resonant: ['Who Answers Its Siblings', 'of the Raised Chord', 'the Listening Yield', 'Concord-Born', 'of the Weather of Voices'],
-  parasitic: ['Who Bills the Neighbour', 'of the Borrowed Heat', 'Downstream-Kept', 'the Unapologetic', 'Who Runs Hot'],
-  cascade: ['of the Lower Ceiling', 'Who Funds the Child', 'Dam-Breaker', 'the Whitewater', 'of the Only Exponent That Matters'],
+  steady: ['the Unhurried', 'of the Flat Account', 'Who Does Not Bargain', 'Keeper of the First Rate', 'the Patient Yield', 'of the Quiet Column', 'Salary-True'],
+  pulse: ['of the Fixed Period', 'Who Breathes on Schedule', 'the Second Breath', 'Tide-Named', 'of the Unrenegotiated Beat', 'Peak-Kept', 'Trough-Honest'],
+  decay: ['the Honest Diminisher', 'of the Falling Margin', 'Who Measures Less', 'Ledger-True', 'the Sincere Sink', 'of the First Third', 'Who Stops Planting'],
+  resonant: ['Who Answers Its Siblings', 'of the Raised Chord', 'the Listening Yield', 'Concord-Born', 'of the Weather of Voices', 'Dueting', 'Never-Only'],
+  parasitic: ['Who Bills the Neighbour', 'of the Borrowed Heat', 'Downstream-Kept', 'the Unapologetic', 'Who Runs Hot', 'of the Unsigned Bill', 'Ember-Borrowed'],
+  cascade: ['of the Lower Ceiling', 'Who Funds the Child', 'Dam-Breaker', 'the Whitewater', 'of the Only Exponent That Matters', 'Pipe-True', 'Tithe-Down'],
 };
 
 const TIER_EPITHET: Record<Tier, string[]> = {
-  surface: ['of the Shelf', 'First-Seen', 'Still Named in Ordinal'],
-  shallow: ['of the Marches', 'Within Sight', 'of the Second Door'],
-  deep: ['of the Galleries', 'Name-Repeater', 'of the Metallic Taste'],
-  abyssal: ['of the Vaults', 'Only While Observed', 'Seed-Sleeper'],
+  surface: ['of the Shelf', 'First-Seen', 'Still Named in Ordinal', 'of the Empty Courtesy', 'Sunlit-Edged'],
+  shallow: ['of the Marches', 'Within Sight', 'of the Second Door', 'Rhyme-Kept', 'of the Pilgrim Bribe'],
+  deep: ['of the Galleries', 'Name-Repeater', 'of the Metallic Taste', 'Copper-Tongued', 'File-Anyway'],
+  abyssal: ['of the Vaults', 'Only While Observed', 'Seed-Sleeper', 'Rehearsal-Built', 'of the Uncomputed'],
 };
 
 const MARK_EPITHET: Record<Anomaly | 'none', string[]> = {
-  none: ['Unmarked', 'the Control', 'As Written'],
-  mirror: ['the Folded', 'Dim-and-Flat', 'Who Stopped Lying About Price'],
-  echo: ['the Repeating', 'Almost-Free', 'Who Has Already Paid'],
-  void: ['the Severed', 'Brighter Alone', 'Who Returns Nothing'],
-  bloom: ['the Extra-Limbed', 'Fifth-Thought', 'Who Grew a Generator'],
+  none: ['Unmarked', 'the Control', 'As Written', 'the Ordinary', 'No-Rite'],
+  mirror: ['the Folded', 'Dim-and-Flat', 'Who Stopped Lying About Price', 'Honest-Cheap', 'Unnamed-Second'],
+  echo: ['the Repeating', 'Almost-Free', 'Who Has Already Paid', 'Rehearsal-Named', 'Cap-the-Stack'],
+  void: ['the Severed', 'Brighter Alone', 'Who Returns Nothing', 'of the Refusal', 'Unfed'],
+  bloom: ['the Extra-Limbed', 'Fifth-Thought', 'Who Grew a Generator', 'Last-Named', 'Census-Kept'],
 };
 
 const TEMPERAMENTS: Record<Arch, string[]> = {
@@ -355,31 +378,37 @@ const TEMPERAMENTS: Record<Arch, string[]> = {
     'Phlegmatic. Will outlast your attention.',
     'Even-keeled to the point of rudeness. Does not celebrate a purchase.',
     'Treats observation as weather and does not come in out of it.',
+    'Will still be producing after you have forgotten why you opened the door.',
   ],
   pulse: [
     'Cyclical. Conversation with it has a tempo you will start matching without noticing.',
     'Restless in the troughs, generous on the peaks. Do not ask it for anything in between.',
     'Keeps its own calendar. Yours is a rumour it has heard about.',
+    'Answers only on the beat. Off-beat questions are treated as weather.',
   ],
   decay: [
     'Austere. Will tell you when you have bought too many, by paying you less.',
     'Melancholic in a useful way. Prefers a small true number to a large flattering one.',
     'Suspicious of abundance. Correctly so.',
+    'Gets quieter the more you love it. That is the interview.',
   ],
   resonant: [
     'Gregarious. Dims if left as an only child.',
     'Hears doors you have not opened yet and gets loud about them.',
     'Cannot be interviewed alone. Bring a sibling or get a partial answer.',
+    'Treats a second live door as a feast day and a third as theology.',
   ],
   parasitic: [
     'Charming, then expensive. The neighbour will send a bill you did not sign.',
     'Focused. Has already picked the generator it is going to live on.',
     'Does not make small talk. The heat is the conversation.',
+    'Will thank you for the neighbour. Do not file the thanks as consent.',
   ],
   cascade: [
     'Single-minded. Will ignore a rich sibling to feed a poor child.',
     'Visionary in the way floods are visionary.',
     'Polite about width, devout about depth. Do not confuse the two.',
+    'Measures wealth from one door up. Local ledgers bore it.',
   ],
 };
 
@@ -388,21 +417,25 @@ const HABITATS: Record<Tier, string[]> = {
     'The first clearing after a Collapse, where the grass is still the colour of a new save.',
     'Along the origin path, within a shout of the root and a mistake of going back.',
     'On the Shelf’s sunlit edge, where unmarked engines pretend they are the whole game.',
+    'A bench on the Origin Shelf that still has the first name carved into it, incorrectly.',
   ],
   shallow: [
     'Just past the first door, where the light is borrowed and the names still rhyme.',
     'In the Sighted Marches, camped against a door they have not decided to love.',
     'On a landing between two shallow doors, leaving one unit as a pilgrim’s bribe.',
+    'A rhyme-camp where two names share a vowel and refuse to admit it.',
   ],
   deep: [
     'A repeating gallery whose hue you could swear you have already catalogued.',
     'Under the third door, in air that tastes of copper and recollection.',
     'A side-passage of the Galleries, filed under a name that will recur two layers down.',
+    'A copper alcove where the recursion first notices itself and pretends it has not.',
   ],
   abyssal: [
     'A vault that reconstructs itself when you look, identically, as if it had been rehearsing.',
     'Below the seventh door, where the tree is a hypothesis you are currently believing.',
     'In strata that have no weather except your attention.',
+    'A seed-room that exists only for the length of this sentence.',
   ],
 };
 
@@ -472,31 +505,37 @@ const RELICS: Record<Arch, Relic[]> = {
     { name: 'The Unhurried Stylus', use: 'Writes the same rate in the margin of every report until the ink admits it is true.' },
     { name: 'Shelf-Glass', use: 'A lens that makes a new save look old enough to trust.' },
     { name: 'The Flat Account', use: 'A ledger with one column. Houses that need two refuse to touch it.' },
+    { name: 'Salary Stone', use: 'Warm in the morning, cool at night, the same either way. Used to time Flat Line collections.' },
   ],
   pulse: [
     { name: 'Metronome of the First Breath', use: 'Ticks at the period the specimen was born with. Cannot be reset. Should not be reset.' },
     { name: 'Tidal Ink', use: 'Darkens on the peak and fades in the trough. Used to time purchases by people who do not trust clocks.' },
     { name: 'The Unrenegotiated Drum', use: 'A small drum that will not accept a new tempo. Second Breath initiates sleep beside it.' },
+    { name: 'Peak-Glass', use: 'Clearest at the crest of a pulse. Clouds in the trough on purpose.' },
   ],
   decay: [
     { name: 'The Falling Margin', use: 'A ruler whose units get shorter as you use it. Accurate, and disliked.' },
     { name: 'Confession Ledger', use: 'Records every unit that paid less than the one before. The School calls this a hymnal.' },
     { name: 'Rusted Honesty', use: 'A coin that is worth less each time it is spent, on purpose.' },
+    { name: 'Stopped Seed', use: 'Will not sprout a second time. The School issues these as medals for knowing when to quit.' },
   ],
   resonant: [
     { name: 'Sibling Fork', use: 'Hums when a second door on the same layer comes alive. Silent in only-child trees.' },
     { name: 'The Raised Chord', use: 'A tuning fork that will not sound until two generators of the same house are owned.' },
     { name: 'Concord Bell', use: 'Rings once for each live door. A fourth ring is considered a feast day.' },
+    { name: 'Never-Only Charm', use: 'Goes silent in an only-child tree. Worn as a warning, not jewellery.' },
   ],
   parasitic: [
     { name: 'The Neighbour’s Bill', use: 'A slip that fills itself in. Always addressed to the generator after the one you just bought.' },
     { name: 'Borrowed Ember', use: 'Stays hot while something beside it cools. Goes out if isolated. The Compact issues these as medals.' },
     { name: 'Downstream Seal', use: 'Wax that will only melt on the generator you have already decided to starve.' },
+    { name: 'Unsigned Slip', use: 'A bill with no signature line. The Compact says the neighbour already agreed.' },
   ],
   cascade: [
     { name: 'Dam Key', use: 'Opens only the door you can least afford. The Host considers this a feature.' },
     { name: 'Whitewater Bowl', use: 'Holds nothing. Used in rites that celebrate transfer over possession.' },
     { name: 'The Lower Ceiling', use: 'A small brass arch. Placed over a child’s name so the parent remembers where the real roof is.' },
+    { name: 'Tithe Pipe', use: 'A hollow reed. Yield poured in here arrives one door up, or not at all.' },
   ],
 };
 
@@ -529,13 +568,35 @@ const RITES: Record<Anomaly | 'none', string[]> = {
 };
 
 const TRADE: Record<Arch, string[]> = {
-  steady: ['shelf-salt', 'unhurried ink', 'flat-line twine', 'origin flint'],
-  pulse: ['period-glass', 'tidal tea', 'second-breath thread', 'metronome oil'],
-  decay: ['margin-rust', 'confession vellum', 'shortened rulers', 'honest ash'],
-  resonant: ['sibling-silver', 'chord resin', 'concord honey', 'raised-octave salt'],
-  parasitic: ['borrowed cinders', 'neighbour-debt tokens', 'downstream wax', 'hot-run copper'],
-  cascade: ['whitewater silk', 'dam-keys', 'child-tithe grain', 'lower-ceiling brass'],
+  steady: ['shelf-salt', 'unhurried ink', 'flat-line twine', 'origin flint', 'quiet vellum', 'salary-tea'],
+  pulse: ['period-glass', 'tidal tea', 'second-breath thread', 'metronome oil', 'peak-wax', 'trough-cloth'],
+  decay: ['margin-rust', 'confession vellum', 'shortened rulers', 'honest ash', 'first-third grain', 'stopped seed'],
+  resonant: ['sibling-silver', 'chord resin', 'concord honey', 'raised-octave salt', 'duet-ink', 'never-only wine'],
+  parasitic: ['borrowed cinders', 'neighbour-debt tokens', 'downstream wax', 'hot-run copper', 'unsigned slips', 'ember-thread'],
+  cascade: ['whitewater silk', 'dam-keys', 'child-tithe grain', 'lower-ceiling brass', 'pipe-salt', 'transfer-oil'],
 };
+
+const LODGES: Record<Arch, string[]> = {
+  steady: ['the Quiet Ledger', 'the Dawn Account', 'the Unhurried Bench', 'the First Column'],
+  pulse: ['the Peak Choir', 'the Trough Watch', 'the Unrenegotiated Hall', 'the Second Breath Cell'],
+  decay: ['the Falling Margin', 'the First Third', 'the Confession Annex', 'the Stopped Field'],
+  resonant: ['the Raised Chord', 'the Never-Only', 'the Sibling Gallery', 'the Weather Room'],
+  parasitic: ['the Unsigned Desk', 'the Ember Loan', 'the Downstream Seal', 'the Hot-Run Cell'],
+  cascade: ['the Dam Key', 'the Whitewater Bowl', 'the Lower Ceiling', 'the Tithe Pipe'],
+};
+
+const CHRONICLERS = [
+  'Archivist Vesh',
+  'Scribe Iolen',
+  'Cartographer Threx',
+  'Auditor Quen',
+  'Cantor Mael',
+  'Surveyor Drish',
+  'Annalist Orun',
+  'Field-hand Sava',
+  'Witness Kel',
+  'Keeper Phaln',
+];
 
 const ALIAS_STEMS = [
   'the cataloguers call it',
@@ -670,6 +731,8 @@ export function composeLore(key: string, specimenName: string): LoreDossier {
     fieldNotes: notes,
     myth: pick(r, MYTHS[tier]),
     economic: pick(r, ECONOMICS[arch]),
+    lodge: pick(r, LODGES[arch]),
+    chronicler: pick(r, CHRONICLERS),
   };
 }
 
@@ -739,7 +802,7 @@ export const LEXICON: LexiconEntry[] = [
     category: 'cosmology',
     title: 'Genesis',
     body:
-      'Eight Epochs buy a new alphabet. Laws are forgotten, epochs are spent, and the phoneme banks the game names things from are replaced wholesale — folded out of the player’s own history, so no two saves reach the same language by the same route. The exponent it grants exceeds what those epochs were worth. The names do not come back.',
+      'Sixteen Epochs buy a new alphabet. Laws are forgotten, epochs are spent, and the phoneme banks the game names things from are replaced wholesale — first through the six shipped tongues, then folded out of the player’s own history, so no two saves reach the same language by the same route. The exponent it grants exceeds what those epochs were worth. The names do not come back.',
   },
   {
     id: 'cosmo:codex',
@@ -772,9 +835,37 @@ export const LEXICON: LexiconEntry[] = [
   {
     id: 'practice:offline',
     category: 'practice',
-    title: 'The Twelve Hours',
+    title: 'The Forty-Eight Hours',
     body:
-      'Away-time is simulated in real steps, never multiplied out, and always reported in a modal. Silent top-ups are considered a heresy of the Shelf. The cap is twelve hours, which the Vaults treat as a liturgical day.',
+      'Away-time is simulated in real steps, never multiplied out, and always reported in a modal. Silent top-ups are considered a heresy of the Shelf. The cap is forty-eight hours, which the Vaults treat as two liturgical days.',
+  },
+  {
+    id: 'practice:ceiling',
+    category: 'practice',
+    title: 'The Hundred Thousand',
+    body:
+      'A live tree may hold a hundred thousand nodes. Past that the renderer is allowed to refuse a door. The Host calls this piety. The Flat Line calls it a ledger that has run out of paper.',
+  },
+  {
+    id: 'cosmo:tongues',
+    category: 'cosmology',
+    title: 'The Six Tongues',
+    body:
+      'Ordinal, Umbral and Liminal ship with the world. Serrated, Auroral and Cavern arrive as later Genesises replace the alphabet. Derived banks past those six are folded from the player’s own history, so the name-space does not actually end.',
+  },
+  {
+    id: 'cosmo:sixteen',
+    category: 'cosmology',
+    title: 'Sixteen Epochs',
+    body:
+      'Genesis waits for sixteen Epochs now, long enough to hold every law at once. Prestige still never moves backwards: the exponent Genesis grants exceeds the epochs it consumes, and the catalogue keeps the names the old tongue filed.',
+  },
+  {
+    id: 'practice:annals',
+    category: 'practice',
+    title: 'The Deep Ledger',
+    body:
+      'The discovery feed and the prestige history each keep twenty-five hundred entries. Older lines fall off the page, not out of the world. Export a save if you want the middle of a very long telling.',
   },
   {
     id: 'practice:width',
@@ -889,7 +980,7 @@ export function composeAnnals(state: GameState): Chronicle[] {
       body: `This is still the first telling. Seed ${state.run.seed >>> 0}. Deepest this run: ${state.run.deepest}. The annals will have more to say after a Collapse.`,
     });
   } else {
-    for (const e of history.slice(-24)) {
+    for (const e of history.slice(-80)) {
       out.push({
         heading: e.kind === 'collapse' ? `Collapse ${e.index}` : e.kind === 'epoch' ? `Epoch ${e.index}` : `Genesis ${e.index}`,
         era: e.kind === 'genesis' ? `G${e.index}` : era,

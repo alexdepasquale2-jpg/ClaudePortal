@@ -117,8 +117,9 @@ export interface PhonemeBank {
 }
 
 /**
- * Bank 0 is the language the game ships with. Genesis swaps banks; bank 3+ is
- * derived procedurally so the name-space never actually runs out.
+ * Bank 0 is the language the game ships with. Genesis swaps banks. The first
+ * six banks are authored; later banks are derived so the name-space never
+ * actually runs out.
  */
 export const BANKS: PhonemeBank[] = [
   {
@@ -142,11 +143,32 @@ export const BANKS: PhonemeBank[] = [
     NU: ['ai', 'oa', 'ue', 'ie', 'eu', 'yi', 'aeo', 'iou', 'oe'],
     CO: ['rn', 'lm', 'st', 'ph', 'tch', 'nx', 'lk', 'rt', '', 'dh'],
   },
+  {
+    id: 3,
+    name: 'Serrated',
+    ON: ['sk', 'vr', 'kl', 'st', 'gr', 'tw', 'zr', 'fn', 'qx', 'hl', 'brn', 'spk'],
+    NU: ['ae', 'io', 'ua', 'ei', 'ao', 'uy', 'oa', 'ie'],
+    CO: ['sk', 'rn', 'xt', 'lp', 'sh', 'rk', 'ft', '', 'zz'],
+  },
+  {
+    id: 4,
+    name: 'Auroral',
+    ON: ['l', 'n', 's', 'h', 'w', 'y', 'fl', 'sn', 'hl', 'ly', 'sw', 'ny'],
+    NU: ['ae', 'ia', 'ea', 'au', 'ou', 'ie', 'ao', 'ue', 'ya'],
+    CO: ['l', 'n', 's', 'th', 'r', '', 'll', 'nn'],
+  },
+  {
+    id: 5,
+    name: 'Cavern',
+    ON: ['g', 'd', 'b', 'k', 'dr', 'gr', 'br', 'kr', 'gl', 'dg', 'kb', 'rd'],
+    NU: ['o', 'u', 'a', 'ou', 'au', 'oo', 'ua', 'or'],
+    CO: ['g', 'm', 'nk', 'rd', 'lm', 'ght', 'mb', '', 'gg'],
+  },
 ];
 
 /**
- * Banks past the shipped three are folded out of the ones before them, seeded
- * by the player's own history. The alphabet mutates but stays pronounceable.
+ * Banks past the six shipped tongues are folded out of the ones before them,
+ * seeded by the player's own history. The alphabet mutates but stays pronounceable.
  */
 export function deriveBank(index: number, seed: number): PhonemeBank {
   if (index < BANKS.length) return BANKS[index];

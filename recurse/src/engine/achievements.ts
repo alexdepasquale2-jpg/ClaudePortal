@@ -3,13 +3,13 @@
  *
  * Deliberately *not* procedural: the Codex is the generated collection, and
  * these are the authored one. Each grants a small additive bonus to the global
- * multiplier, so the whole set is worth roughly two Collapses — flavour with a
+ * multiplier, so the whole set is worth under six Collapses — flavour with a
  * nudge, never a shortcut.
  */
 
 import { GOAL } from './economy';
 import { SPECIES_COUNT, type NodeData } from './procgen';
-import { COLLAPSES_PER_EPOCH } from './epochs';
+import { COLLAPSES_PER_EPOCH, EPOCH_LAWS } from './epochs';
 import { loreCoverage } from './lore';
 import type { GameState } from './state';
 
@@ -97,6 +97,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (c) => loreCoverage(c.state.meta.codex).houses >= 6 },
   { id: 'strata4', name: 'Four Strata', desc: 'Log a specimen from each of the four strata.', bonus: 0.04,
     test: (c) => loreCoverage(c.state.meta.codex).strata >= 4 },
+  { id: 'marks5', name: 'Every Mark', desc: 'Log unmarked, folded, repeating, severed and extra-limbed specimens.', bonus: 0.03,
+    test: (c) => loreCoverage(c.state.meta.codex).marks >= 5 },
+  { id: 'created100k', name: 'Cartographer', desc: 'Create 100,000 nodes across all runs.', bonus: 0.03,
+    test: (c) => c.state.meta.stats.nodesEverCreated >= 100000 },
+  { id: 'depth40', name: 'Past the Rumour', desc: 'Reach depth 40.', bonus: 0.03,
+    test: (c) => c.state.meta.stats.deepestDepth >= 40 },
 
   // --- prestige ----------------------------------------------------------
   { id: 'collapse1', name: 'Collapse', desc: 'Collapse once.', bonus: 0.03,
@@ -107,10 +113,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (c) => c.state.meta.stats.totalCollapses >= 100 },
   { id: 'epoch1', name: 'New Rules', desc: 'Reach your first Epoch.', bonus: 0.08,
     test: (c) => c.state.meta.stats.totalEpochs >= 1 },
-  { id: 'epoch8', name: 'Legislator', desc: 'Hold all eight laws at once.', bonus: 0.15,
-    test: (c) => c.state.progress.laws.length >= 8 },
+  { id: 'epoch8', name: 'Legislator', desc: 'Hold every law of recursion at once.', bonus: 0.15,
+    test: (c) => c.state.progress.laws.length >= EPOCH_LAWS.length },
   { id: 'genesis1', name: 'Genesis', desc: 'Rewrite the language.', bonus: 0.3, secret: true,
     test: (c) => c.state.meta.stats.totalGenesis >= 1 },
+  { id: 'genesis3', name: 'Polyglot', desc: 'Survive three Genesises. The catalogue keeps every tongue.', bonus: 0.03,
+    test: (c) => c.state.meta.stats.totalGenesis >= 3 },
 
   // --- speed / oddities --------------------------------------------------
   { id: 'fast5', name: 'Efficient', desc: 'Collapse in under 5 minutes.', bonus: 0.07,
