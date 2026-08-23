@@ -1,7 +1,11 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ITEMS } from '../data/items';
 import { MOBS } from '../data/mobs';
 import type { ItemInstance, Unit } from '../sim/types';
+
+const mobGeoCache = new Map<string, THREE.BufferGeometry>();
+const mobMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
 const mat = (color: number, flat = false) =>
   new THREE.MeshLambertMaterial({ color, flatShading: flat });
@@ -68,54 +72,67 @@ export function setWeaponMesh(view: UnitView, inst: ItemInstance | undefined) {
   view.weapon.add(g);
 }
 
+/** Each mob is merged down to a single geometry — one draw call per mob, colours baked
+ *  into the vertices — so a screen full of them costs calls in the dozens, not the hundreds. */
 export function buildMob(u: Unit): UnitView {
   const def = MOBS[u.defId];
-  const root = new THREE.Group();
   const s = def.scale;
-  const parts: THREE.Object3D[] = [];
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4 * s, 0.7 * s, 4, 8), mat(def.color, true));
-  body.castShadow = true;
+  const parts: [THREE.BufferGeometry, number][] = [];
+  const push = (g: THREE.BufferGeometry, color: number, pos: [number, number, number], rot?: [number, number, number]) => {
+    if (rot) { g.rotateX(rot[0]); g.rotateY(rot[1]); g.rotateZ(rot[2]); }
+    g.translate(pos[0], pos[1], pos[2]);
+    parts.push([g, color]);
+  };
+  const body = () => new THREE.CapsuleGeometry(0.4 * s, 0.7 * s, 4, 8);
+
   switch (def.shape) {
     case 'boar': case 'wolf': {
-      body.rotation.x = Math.PI / 2;
-      body.position.y = 0.55 * s;
-      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.22 * s, 0.5 * s, 6), mat(def.color));
-      snout.rotation.x = Math.PI / 2; snout.position.set(0, 0.55 * s, 0.75 * s);
-      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.6 * s, 0.5 * s, 0.9 * s), mat(0x2e2418));
-      legs.position.y = 0.25 * s;
-      parts.push(body, snout, legs);
-      if (def.shape === 'wolf') {
-        const tail = new THREE.Mesh(new THREE.ConeGeometry(0.1 * s, 0.6 * s, 5), mat(def.color));
-        tail.rotation.x = -Math.PI / 2.6; tail.position.set(0, 0.8 * s, -0.75 * s);
-        parts.push(tail);
-      }
+      push(body(), def.color, [0, 0.55 * s, 0], [Math.PI / 2, 0, 0]);
+      push(new THREE.ConeGeometry(0.22 * s, 0.5 * s, 6), def.color, [0, 0.55 * s, 0.75 * s], [Math.PI / 2, 0, 0]);
+      push(new THREE.BoxGeometry(0.6 * s, 0.5 * s, 0.9 * s), 0x2e2418, [0, 0.25 * s, 0]);
+      if (def.shape === 'wolf')
+        push(new THREE.ConeGeometry(0.1 * s, 0.6 * s, 5), def.color, [0, 0.8 * s, -0.75 * s], [-Math.PI / 2.6, 0, 0]);
       break;
     }
     case 'spider': {
-      body.rotation.x = Math.PI / 2; body.position.y = 0.5 * s;
-      parts.push(body);
+      push(body(), def.color, [0, 0.5 * s, 0], [Math.PI / 2, 0, 0]);
       for (let i = 0; i < 8; i++) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * s, 0.03 * s, 1.0 * s, 4), mat(0x1d1a26));
         const a = (i / 8) * Math.PI * 2;
-        leg.position.set(Math.cos(a) * 0.5 * s, 0.42 * s, Math.sin(a) * 0.5 * s);
-        leg.rotation.z = Math.cos(a) * 0.9; leg.rotation.x = Math.sin(a) * 0.9;
-        parts.push(leg);
+        push(new THREE.CylinderGeometry(0.04 * s, 0.03 * s, 1.0 * s, 4), 0x1d1a26,
+          [Math.cos(a) * 0.5 * s, 0.42 * s, Math.sin(a) * 0.5 * s], [Math.sin(a) * 0.9, 0, Math.cos(a) * 0.9]);
       }
       break;
     }
     default: {
-      body.position.y = 0.9 * s;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26 * s, 8, 6), mat(def.color));
-      head.position.y = 1.6 * s;
-      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.14 * s, 0.42 * s, 5), mat(0xd8d2c0));
-      horn.position.y = 1.9 * s;
-      const club = new THREE.Mesh(new THREE.BoxGeometry(0.1 * s, 0.8 * s, 0.1 * s), mat(0x4a3a26));
-      club.position.set(0.38 * s, 1.0 * s, 0); club.rotation.z = -0.4;
-      parts.push(body, head, horn, club);
+      push(body(), def.color, [0, 0.9 * s, 0]);
+      push(new THREE.SphereGeometry(0.26 * s, 8, 6), def.color, [0, 1.6 * s, 0]);
+      push(new THREE.ConeGeometry(0.14 * s, 0.42 * s, 5), 0xd8d2c0, [0, 1.9 * s, 0]);
+      push(new THREE.BoxGeometry(0.1 * s, 0.8 * s, 0.1 * s), 0x4a3a26, [0.38 * s, 1.0 * s, 0], [0, 0, -0.4]);
     }
   }
-  root.add(...parts);
-  return { root, weapon: new THREE.Group(), bodyColor: body.material as THREE.MeshLambertMaterial, height: 2 * s };
+
+  const c = new THREE.Color();
+  for (const [g, color] of parts) {
+    c.setHex(color);
+    const count = g.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) { colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    g.deleteAttribute('uv');
+  }
+  // All mobs of a type share one geometry and one material.
+  let merged = mobGeoCache.get(u.defId);
+  if (!merged) {
+    merged = mergeGeometries(parts.map(([g]) => g), false)!;
+    mobGeoCache.set(u.defId, merged);
+  }
+  for (const [g] of parts) g.dispose();
+
+  const mesh = new THREE.Mesh(merged, mobMaterial);
+  mesh.castShadow = true;
+  const root = new THREE.Group();
+  root.add(mesh);
+  return { root, weapon: new THREE.Group(), bodyColor: mobMaterial, height: 2 * s };
 }
 
 export function buildNpc(color: number): UnitView {

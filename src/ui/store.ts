@@ -12,9 +12,10 @@ export function signal<T>(initial: T): Signal<T> {
 
 /** Tiny DOM helper: el('div.class#id', {attrs}, children...). */
 export function el(spec: string, attrs: Record<string, unknown> = {}, ...kids: (Node | string | null)[]): HTMLElement {
-  const [tagAndClasses, id] = spec.split('#');
-  const [tag, ...classes] = tagAndClasses.split('.');
-  const e = document.createElement(tag || 'div');
+  const tag = spec.match(/^[a-z0-9]+/i)?.[0] ?? 'div';
+  const e = document.createElement(tag);
+  const id = spec.match(/#([\w-]+)/)?.[1];
+  const classes = [...spec.matchAll(/\.([\w-]+)/g)].map(m => m[1]);
   if (id) e.id = id;
   if (classes.length) e.className = classes.join(' ');
   for (const [k, v] of Object.entries(attrs)) {

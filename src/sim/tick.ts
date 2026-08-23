@@ -37,7 +37,8 @@ export function applyCommand(w: World, c: Command) {
     case 'target': p.targetId = c.id; if (c.id === null) p.attacking = false; break;
     case 'cast': {
       const fail = startCast(w, p, c.spellId, c.targetId ?? p.targetId);
-      if (fail) log(w, 'error', fail);
+      // Holding a key spams the GCD and mid-cast rejections; those are not worth a log line.
+      if (fail && fail !== 'Not ready yet.' && fail !== 'Already casting.') log(w, 'error', fail);
       break;
     }
     case 'stopcast': interruptCast(w, p); p.attacking = false; break;
