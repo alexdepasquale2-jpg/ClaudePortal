@@ -90,6 +90,7 @@ src/engine/     pure, no DOM, no clock, no storage
   economy.ts      cost, maxBuy, archetype production, door multiplier, tick
   procgen.ts      FNV-1a + mulberry32, word grammar, archetypes, anomalies,
                   the 6 x 4 x 5 = 120 species taxonomy
+  lore.ts         world bible: houses, strata, marks, lexicon, dossiers, annals
   flat.ts         the same rate maths over typed arrays, for the worker
   state.ts        save schema, versioned migrations, KV storage adapter
   epochs.ts       Collapse / Epoch / Genesis, and the eight laws of recursion
@@ -110,10 +111,14 @@ about both.
 
 - **Codex.** Every layer is classified from its dominant archetype, depth tier
   and anomaly into one of 120 species. First encounters are logged permanently
-  with a procedural description assembled from four dictionaries — nothing is
-  written per species — and a cached sigil thumbnail. **The codex survives
-  Collapse, Epoch and Genesis.** Only an explicit, typed-confirmation erase
-  clears it. That invariant has its own tests.
+  with a procedural description assembled from dictionaries — nothing is
+  written per species — and a cached sigil thumbnail. The Codex also holds a
+  world bible: six houses, four strata, five marks, three tongues, eight laws,
+  and a per-species field dossier (designation, relic, rite, harvest, myth)
+  generated on read from `src/engine/lore.ts`. Annals are assembled from the
+  save’s own prestige history. **The codex survives Collapse, Epoch and
+  Genesis.** Only an explicit, typed-confirmation erase clears it. That
+  invariant has its own tests.
 - **Prestige, three tiers.** Collapse at 1e9 root output grants +0.5 global
   multiplier. Epoch, at 12 Collapses, spends those for a permanently higher
   door exponent and one new law of recursion. Genesis, at 8 Epochs, resets the

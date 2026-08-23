@@ -10,6 +10,7 @@
 import { GOAL } from './economy';
 import { SPECIES_COUNT, type NodeData } from './procgen';
 import { COLLAPSES_PER_EPOCH } from './epochs';
+import { loreCoverage } from './lore';
 import type { GameState } from './state';
 
 export interface AchContext {
@@ -92,6 +93,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     test: (c) => c.codexCount >= Math.ceil(SPECIES_COUNT * 0.5) },
   { id: 'codex100', name: 'Complete Taxonomy', desc: 'Fill the codex.', bonus: 0.25,
     test: (c) => c.codexCount >= SPECIES_COUNT },
+  { id: 'houses6', name: 'House Tour', desc: 'Log a specimen from each of the six houses.', bonus: 0.04,
+    test: (c) => loreCoverage(c.state.meta.codex).houses >= 6 },
+  { id: 'strata4', name: 'Four Strata', desc: 'Log a specimen from each of the four strata.', bonus: 0.04,
+    test: (c) => loreCoverage(c.state.meta.codex).strata >= 4 },
 
   // --- prestige ----------------------------------------------------------
   { id: 'collapse1', name: 'Collapse', desc: 'Collapse once.', bonus: 0.03,

@@ -708,6 +708,65 @@ ul.plain {
   line-height: 1.25;
 }
 
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.tabs .btn.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.codex-pane[hidden] {
+  display: none;
+}
+.lore-note {
+  color: var(--text);
+  font-size: 13px;
+}
+.lore-myth {
+  font-style: italic;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+  margin: 12px 0;
+}
+.lexicon {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lex-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: var(--panel-2);
+}
+.lex-item summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.lex-item p {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.annals {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.annal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--panel-2);
+}
+.annal-head {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
 .feed {
   list-style: none;
   margin: 0;

@@ -34,6 +34,15 @@ import {
   type Anomaly,
   type Tier,
 } from '../../engine/procgen';
+import {
+  CATEGORY_LABEL,
+  DANGER_LABEL,
+  LEXICON_COUNT,
+  composeAnnals,
+  composeLore,
+  lexiconByCategory,
+  loreCoverage,
+} from '../../engine/lore';
 import type { CodexEntry, SigilCache } from '../../engine/state';
 import { readableAccent } from '../palette';
 import { MODE_LABELS, sigilThumbnail, type SigilMode } from '../sigil';
@@ -82,10 +91,11 @@ export function speciesThumb(key: string, mode: SigilMode, sigils: SigilCache): 
   return url;
 }
 
-export function openCodex(deps: ScreenDeps): void {
+export function openCodex(deps: ScreenDeps, tab: 'species' | 'lexicon' | 'annals' = 'species'): void {
   const { engine, sigils } = deps;
   const codex = engine.state.meta.codex;
   const mode = engine.state.meta.settings.sigilMode;
+  const cover = loreCoverage(codex);
 
   openModal(
     'Codex',
@@ -96,66 +106,157 @@ export function openCodex(deps: ScreenDeps): void {
           'p',
           { class: 'muted' },
           `${found} of ${SPECIES_COUNT} species logged (${pct(found / SPECIES_COUNT)}). ` +
-            'The codex survives every Collapse, Epoch and Genesis — it is cleared only by erasing the save.',
+            `${cover.houses}/6 houses, ${cover.strata}/4 strata, ${cover.marks}/5 marks seen. ` +
+            `${LEXICON_COUNT} lexicon entries. The codex survives every Collapse, Epoch and Genesis.`,
         ),
       );
 
-      const filters = h('div', { class: 'filters' });
-      let tierFilter: Tier | 'all' = 'all';
-      let anomFilter: Anomaly | 'none' | 'all' = 'all';
-      let archFilter: string = 'all';
-      let onlyFound = false;
-
-      const grid = h('div', { class: 'codex-grid' });
-
-      const draw = (): void => {
-        grid.textContent = '';
-        let shown = 0;
-        for (const key of allSpecies()) {
-          const p = parseSpecies(key);
-          if (tierFilter !== 'all' && p.tier !== tierFilter) continue;
-          if (archFilter !== 'all' && p.arch !== archFilter) continue;
-          if (anomFilter !== 'all') {
-            if (anomFilter === 'none' && p.anomaly !== null) continue;
-            if (anomFilter !== 'none' && p.anomaly !== anomFilter) continue;
-          }
-          const entry = codex[key];
-          if (onlyFound && !entry) continue;
-          shown++;
-          grid.appendChild(tile(key, entry, mode, sigils));
-        }
-        if (shown === 0) {
-          grid.appendChild(h('p', { class: 'muted', text: 'Nothing matches those filters.' }));
-        }
+      const panes: Record<string, HTMLElement> = {
+        species: h('div', { class: 'codex-pane' }),
+        lexicon: h('div', { class: 'codex-pane' }),
+        annals: h('div', { class: 'codex-pane' }),
       };
 
-      filters.append(
-        select('Tier', ['all', ...TIERS], (v) => {
-          tierFilter = v as Tier | 'all';
-          draw();
-        }),
-        select('Archetype', ['all', ...ARCHETYPES], (v) => {
-          archFilter = v;
-          draw();
-        }),
-        select('Anomaly', ['all', 'none', ...ANOMALIES], (v) => {
-          anomFilter = v as Anomaly | 'none' | 'all';
-          draw();
-        }),
-      );
-      const toggle = h('button', { class: 'btn btn-sm', text: 'Found only' });
-      toggle.addEventListener('click', () => {
-        onlyFound = !onlyFound;
-        toggle.classList.toggle('is-on', onlyFound);
-        draw();
-      });
-      filters.appendChild(toggle);
+      const tabs = h('div', { class: 'tabs', role: 'tablist' });
+      const buttons: Record<string, HTMLButtonElement> = {};
+      const show = (id: 'species' | 'lexicon' | 'annals'): void => {
+        for (const k of Object.keys(panes)) {
+          panes[k].hidden = k !== id;
+          buttons[k].classList.toggle('is-on', k === id);
+          buttons[k].setAttribute('aria-selected', k === id ? 'true' : 'false');
+        }
+      };
+      for (const [id, label] of [
+        ['species', 'Species'],
+        ['lexicon', 'Lexicon'],
+        ['annals', 'Annals'],
+      ] as const) {
+        const b = h('button', {
+          class: 'btn btn-sm',
+          text: label,
+          role: 'tab',
+          'aria-selected': 'false',
+        }) as HTMLButtonElement;
+        b.addEventListener('click', () => show(id));
+        buttons[id] = b;
+        tabs.appendChild(b);
+      }
 
-      body.append(filters, grid);
-      draw();
+      buildSpeciesPane(panes.species, codex, mode, sigils);
+      buildLexiconPane(panes.lexicon);
+      buildAnnalsPane(panes.annals, engine);
+
+      body.append(tabs, panes.species, panes.lexicon, panes.annals);
+      show(tab);
     },
     { wide: true },
   );
+}
+
+function buildSpeciesPane(
+  host: HTMLElement,
+  codex: Record<string, CodexEntry>,
+  mode: SigilMode,
+  sigils: SigilCache,
+): void {
+  const filters = h('div', { class: 'filters' });
+  let tierFilter: Tier | 'all' = 'all';
+  let anomFilter: Anomaly | 'none' | 'all' = 'all';
+  let archFilter: string = 'all';
+  let onlyFound = false;
+
+  const grid = h('div', { class: 'codex-grid' });
+
+  const draw = (): void => {
+    grid.textContent = '';
+    let shown = 0;
+    for (const key of allSpecies()) {
+      const p = parseSpecies(key);
+      if (tierFilter !== 'all' && p.tier !== tierFilter) continue;
+      if (archFilter !== 'all' && p.arch !== archFilter) continue;
+      if (anomFilter !== 'all') {
+        if (anomFilter === 'none' && p.anomaly !== null) continue;
+        if (anomFilter !== 'none' && p.anomaly !== anomFilter) continue;
+      }
+      const entry = codex[key];
+      if (onlyFound && !entry) continue;
+      shown++;
+      grid.appendChild(tile(key, entry, mode, sigils));
+    }
+    if (shown === 0) {
+      grid.appendChild(h('p', { class: 'muted', text: 'Nothing matches those filters.' }));
+    }
+  };
+
+  filters.append(
+    select('Tier', ['all', ...TIERS], (v) => {
+      tierFilter = v as Tier | 'all';
+      draw();
+    }),
+    select('Archetype', ['all', ...ARCHETYPES], (v) => {
+      archFilter = v;
+      draw();
+    }),
+    select('Anomaly', ['all', 'none', ...ANOMALIES], (v) => {
+      anomFilter = v as Anomaly | 'none' | 'all';
+      draw();
+    }),
+  );
+  const toggle = h('button', { class: 'btn btn-sm', text: 'Found only' });
+  toggle.addEventListener('click', () => {
+    onlyFound = !onlyFound;
+    toggle.classList.toggle('is-on', onlyFound);
+    draw();
+  });
+  filters.appendChild(toggle);
+  host.append(filters, grid);
+  draw();
+}
+
+function buildLexiconPane(host: HTMLElement): void {
+  host.appendChild(
+    h(
+      'p',
+      { class: 'muted' },
+      'The world bible. Houses, strata, marks, tongues and laws — authored once, ' +
+        'then crossed with the 120-species taxonomy to produce every dossier.',
+    ),
+  );
+  const grouped = lexiconByCategory();
+  for (const cat of Object.keys(grouped) as (keyof typeof grouped)[]) {
+    const entries = grouped[cat];
+    if (!entries.length) continue;
+    const list = h('div', { class: 'lexicon' });
+    for (const e of entries) {
+      const item = h('details', { class: 'lex-item' });
+      item.append(h('summary', { text: e.title }), h('p', { text: e.body }));
+      list.appendChild(item);
+    }
+    host.appendChild(section(CATEGORY_LABEL[cat], [list]));
+  }
+}
+
+function buildAnnalsPane(host: HTMLElement, engine: Engine): void {
+  host.appendChild(
+    h(
+      'p',
+      { class: 'muted' },
+      'Chronicles assembled from this save. Prestige spends the tree; it does not spend the annals.',
+    ),
+  );
+  const list = h('div', { class: 'annals' });
+  for (const c of composeAnnals(engine.state)) {
+    list.appendChild(
+      h(
+        'article',
+        { class: 'annal' },
+        h('h4', { class: 'annal-head', text: c.heading }),
+        h('p', { class: 'muted small', text: c.era }),
+        h('p', { text: c.body }),
+      ),
+    );
+  }
+  host.appendChild(list);
 }
 
 function tile(
@@ -179,16 +280,38 @@ function tile(
       h('div', { class: 'codex-kind muted small', text: speciesTitle(key) }),
     );
     el.addEventListener('click', () => {
+      const lore = composeLore(key, entry.name);
       openModal(entry.name, (b) => {
         b.append(
           h('img', { class: 'codex-sigil-big', alt: '', src: speciesThumb(key, mode, sigils) }),
-          h('p', { class: 'lede', text: speciesTitle(key) }),
-          h('p', { text: entry.description }),
-          kv('Tier', p.tier),
-          kv('Dominant archetype', ARCH_LABEL[p.arch]),
-          kv('Anomaly', p.anomaly ?? 'none'),
-          kv('First found', `${stamp(entry.firstSeen)} at depth ${entry.depth} (${entry.era})`),
-          kv('Specimens seen', entry.seen.toLocaleString()),
+          h('p', { class: 'lede', text: lore.title }),
+          h('p', { class: 'muted small', text: `${lore.designation} · ${lore.epithet}` }),
+          h('p', { text: lore.lead }),
+          h('p', { class: 'lore-note', text: lore.fieldNotes[0] }),
+          h('p', { class: 'lore-note', text: lore.fieldNotes[1] }),
+          section('Field dossier', [
+            kv('House', `${lore.house.name} — “${lore.house.motto}”`),
+            kv('Stratum', `${lore.stratum.name} (${lore.stratum.range})`),
+            kv('Mark', lore.mark.name),
+            kv('Danger', DANGER_LABEL[lore.danger]),
+            kv('Temperament', lore.temperament),
+            kv('Habitat', lore.habitat),
+            kv('Harvest', lore.harvest),
+            kv('First contact', lore.protocol),
+            kv('Relic', `${lore.relic.name}. ${lore.relic.use}`),
+            kv('Rite', lore.rite),
+            kv('Trade staple', lore.trade),
+            kv('Also known as', lore.aliases.join('; ')),
+            kv('Economy', lore.economic),
+          ]),
+          h('p', { class: 'lore-myth', text: lore.myth }),
+          section('Catalogue', [
+            kv('Tier', p.tier),
+            kv('Dominant archetype', ARCH_LABEL[p.arch]),
+            kv('Anomaly', p.anomaly ?? 'none'),
+            kv('First found', `${stamp(entry.firstSeen)} at depth ${entry.depth} (${entry.era})`),
+            kv('Specimens seen', entry.seen.toLocaleString()),
+          ]),
         );
       });
     });
@@ -309,7 +432,17 @@ export function openStats(deps: ScreenDeps): void {
           kv('Fastest collapse', s.fastestCollapseMs ? dur(s.fastestCollapseMs) : '—'),
           kv('Time played', dur(s.playtimeMs)),
           kv('Offline time claimed', dur(s.offlineMsClaimed)),
-          kv('Species logged', `${Object.keys(engine.state.meta.codex).length} / ${SPECIES_COUNT}`),
+          kv(
+            'Species logged',
+            `${Object.keys(engine.state.meta.codex).length} / ${SPECIES_COUNT} · ${LEXICON_COUNT} lexicon entries`,
+          ),
+          kv(
+            'Lore coverage',
+            (() => {
+              const c = loreCoverage(engine.state.meta.codex);
+              return `${c.houses}/6 houses, ${c.strata}/4 strata, ${c.marks}/5 marks`;
+            })(),
+          ),
         ]),
         section('Prestige', [
           kv('Collapses', `${p.collapses} (${s.totalCollapses} all time)`),
@@ -751,7 +884,10 @@ export function openHelp(): void {
         kv('Parasitic generators', 'Run hot, but drain the generator after them.'),
         kv('Void layers', 'Take nothing from below and burn brighter alone. Do not build under one.'),
         kv('Bloom layers', 'Come with a generator no sibling has.'),
-        kv('The codex', 'Survives every reset. It is the only progress that always keeps.'),
+        kv('The codex', 'Survives every reset. Species, lexicon and annals. The only progress that always keeps.'),
+        kv('Houses', 'Six orders claim the six archetypes. Their mottos are in the Lexicon tab.'),
+        kv('Strata', 'Origin Shelf, Sighted Marches, Repeating Galleries, Unobserved Vaults.'),
+        kv('Marks', 'Unmarked, Folded, Repeating, Severed, Extra Limb — the five anomaly states.'),
       ]),
       h('p', {
         class: 'muted small',
