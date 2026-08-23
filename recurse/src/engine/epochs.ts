@@ -29,7 +29,8 @@ export const COLLAPSE_MULT_STEP = 0.5;
 /** Epoch's permanent contribution to the door exponent. */
 export const EPOCH_E_STEP = 0.02;
 /** Genesis's permanent contribution to the door exponent. */
-export const GENESIS_E_STEP = 0.25;
+/** Must exceed EPOCH_E_STEP * EPOCHS_PER_GENESIS so Genesis never moves E backwards. */
+export const GENESIS_E_STEP = 0.4;
 
 /** Auto-buyers unlock here; auto-descend is a much later comfort. */
 export const AUTOBUY_UNLOCK_COLLAPSES = 2;
