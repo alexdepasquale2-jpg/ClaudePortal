@@ -5,6 +5,7 @@ export class KeyboardMouse implements InputSource {
   private keys = new Set<string>();
   private yaw = 0; private pitch = 0; private zoom = 0;
   private dragging = false;
+  private last = { x: 0, y: 0 };
   private handlers: [string, EventTarget, EventListener][] = [];
 
   constructor(private canvas: HTMLCanvasElement, private onPick: (x: number, y: number, button: number) => void) {
@@ -17,15 +18,25 @@ export class KeyboardMouse implements InputSource {
     this.on(canvas, 'contextmenu', (e: Event) => e.preventDefault());
     this.on(canvas, 'mousedown', (e: MouseEvent) => {
       if (e.button === 0) this.onPick(e.clientX, e.clientY, 0);
-      if (e.button === 2) { this.dragging = true; canvas.requestPointerLock?.(); }
+      if (e.button === 2) {
+        this.dragging = true;
+        this.last = { x: e.clientX, y: e.clientY };
+        canvas.requestPointerLock?.();
+      }
     });
     this.on(window, 'mouseup', (e: MouseEvent) => {
-      if (e.button === 2) { this.dragging = false; document.exitPointerLock?.(); }
+      if (e.button === 2) { this.dragging = false; if (document.pointerLockElement) document.exitPointerLock?.(); }
     });
     this.on(window, 'mousemove', (e: MouseEvent) => {
       if (!this.dragging) return;
-      this.yaw -= e.movementX * 0.005;
-      this.pitch = Math.max(-0.2, Math.min(1.2, this.pitch + e.movementY * 0.004));
+      // Pointer lock is denied in sandboxed frames, where movementX/Y is unreliable —
+      // fall back to raw client deltas so right-drag still orbits.
+      const locked = document.pointerLockElement === canvas;
+      const dx = locked ? e.movementX : e.clientX - this.last.x;
+      const dy = locked ? e.movementY : e.clientY - this.last.y;
+      this.last = { x: e.clientX, y: e.clientY };
+      this.yaw -= dx * 0.005;
+      this.pitch = Math.max(-0.2, Math.min(1.2, this.pitch + dy * 0.004));
     });
     this.on(canvas, 'wheel', (e: WheelEvent) => { e.preventDefault(); this.zoom += Math.sign(e.deltaY) * 1.2; }, { passive: false });
   }
