@@ -1,0 +1,100 @@
+/* Minimal shell styling. The game draws into #viewport; #overlay carries DOM UI on top. */
+:root {
+  --bg: #0b0d0f;
+  --fg: #d7dde3;
+  --muted: #7d868f;
+  --accent: #6fd3c7;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  /* Touch is a first-class input; the browser must not steal gestures from the game. */
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#viewport {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Respect the notch on phones. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+#overlay > * {
+  pointer-events: auto;
+}
+
+.boot-status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  max-width: min(90vw, 34rem);
+  padding: 1.5rem;
+}
+
+.boot-status h1 {
+  margin: 0 0 0.25rem;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  letter-spacing: 0.02em;
+}
+
+.boot-status .tagline {
+  margin: 0 0 1.25rem;
+  color: var(--accent);
+  font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+}
+
+.boot-status .status,
+.boot-status .detail {
+  margin: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.boot-error {
+  position: absolute;
+  inset: 1rem;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  background: #1a0e0f;
+  color: #ff9a9f;
+  border: 1px solid #52272a;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "carried-kit",
+    "displayName": "Carried Kit",
+    "description": "Start every operation with a node blank and enough rack to plant it. You no longer have to earn the first decision.",
+    "category": "head-start",
+    "requires": [],
+    "requiresFeats": [],
+    "cost": { "Scrap": 400, "Rack": 60, "Plate": 0, "PyronChrome": 0 },
+    "tier": 0
+  },
+  {
+    "id": "surveyed-approach",
+    "displayName": "Surveyed Approach",
+    "description": "Extraction is marked from the moment you land. Knowing the way out is what lets you walk away from it.",
+    "category": "head-start",
+    "requires": ["carried-kit"],
+    "requiresFeats": [],
+    "cost": { "Scrap": 700, "Rack": 120, "Plate": 20, "PyronChrome": 0 },
+    "tier": 1
+  },
+  {
+    "id": "shallow-curve",
+    "displayName": "Shallow Curve",
+    "description": "Loudness accumulates more slowly for the first minute of an operation. The opening question stays open longer.",
+    "category": "curve",
+    "requires": ["carried-kit"],
+    "requiresFeats": ["first-flip"],
+    "cost": { "Scrap": 900, "Rack": 200, "Plate": 40, "PyronChrome": 0 },
+    "tier": 1
+  },
+  {
+    "id": "standing-formation",
+    "displayName": "Standing Formation",
+    "description": "Armed Nobots hold a perimeter instead of wandering. They are better at it than you expected, which is its own problem.",
+    "category": "formation",
+    "requires": ["surveyed-approach"],
+    "requiresFeats": ["armed-and-kept"],
+    "cost": { "Scrap": 1200, "Rack": 300, "Plate": 90, "PyronChrome": 0 },
+    "tier": 2
+  },
+  {
+    "id": "chrome-handling",
+    "displayName": "Chrome Handling",
+    "description": "Pyron Chrome can be installed on a primary node in the field rather than only at the surface.",
+    "category": "perk",
+    "requires": ["surveyed-approach"],
+    "requiresFeats": ["found-the-mass"],
+    "cost": { "Scrap": 1500, "Rack": 400, "Plate": 150, "PyronChrome": 1 },
+    "tier": 2
+  },
+  {
+    "id": "contested-withdrawal",
+    "displayName": "Contested Withdrawal",
+    "description": "Abandoning an operation still records the site as contested. Walking away stops being nothing.",
+    "category": "perk",
+    "requires": ["shallow-curve"],
+    "requiresFeats": ["walked-away"],
+    "cost": { "Scrap": 1800, "Rack": 350, "Plate": 120, "PyronChrome": 0 },
+    "tier": 2
+  },
+  {
+    "id": "shoulder-rig",
+    "displayName": "Shoulder Rig",
+    "description": "Third-person camera preset. The hybrid view stops being a compromise and starts being a choice.",
+    "category": "camera-preset",
+    "requires": ["standing-formation", "contested-withdrawal"],
+    "requiresFeats": ["held-the-node"],
+    "cost": { "Scrap": 2600, "Rack": 600, "Plate": 260, "PyronChrome": 0 },
+    "tier": 3
+  },
+  {
+    "id": "eyes-down",
+    "displayName": "Eyes Down",
+    "description": "First-person camera preset. Manual aim reaches parity with the auto-fire spine — late, as it was always going to.",
+    "category": "camera-preset",
+    "requires": ["shoulder-rig", "chrome-handling"],
+    "requiresFeats": ["held-the-node", "found-the-mass"],
+    "cost": { "Scrap": 4000, "Rack": 900, "Plate": 400, "PyronChrome": 2 },
+    "tier": 4
+  }
+]

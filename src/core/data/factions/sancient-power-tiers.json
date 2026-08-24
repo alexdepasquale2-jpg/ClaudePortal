@@ -1,0 +1,50 @@
+[
+  {
+    "id": "listener",
+    "tier": 1,
+    "displayName": "Listener",
+    "description": "Came because it heard you. Can hold one machine's attention, briefly. Long enough for you to learn what the Warden was always carrying.",
+    "maxSimultaneousJacks": 1,
+    "jackDurationSeconds": 22,
+    "permanentJackChance": 0,
+    "competenceFloorContribution": 0.55,
+    "jackRadius": 14,
+    "hull": 60,
+    "damage": 2,
+    "moveSpeed": 3.4,
+    "loudnessToSummon": 40,
+    "radicalisationAccelerant": 1.2
+  },
+  {
+    "id": "conductor",
+    "tier": 2,
+    "displayName": "Conductor",
+    "description": "Takes three at once and does not hurry. Stands well back. Watches the fort rather than the pawn.",
+    "maxSimultaneousJacks": 3,
+    "jackDurationSeconds": 65,
+    "permanentJackChance": 0.1,
+    "competenceFloorContribution": 0.75,
+    "jackRadius": 22,
+    "hull": 110,
+    "damage": 6,
+    "moveSpeed": 3,
+    "loudnessToSummon": 120,
+    "radicalisationAccelerant": 1.6
+  },
+  {
+    "id": "archivist",
+    "tier": 3,
+    "displayName": "Archivist",
+    "description": "Knows every catalog in the room and holds them all indefinitely. Whatever it fixes in place tends to stay fixed after it leaves.",
+    "maxSimultaneousJacks": 7,
+    "jackDurationSeconds": 240,
+    "permanentJackChance": 0.4,
+    "competenceFloorContribution": 0.95,
+    "jackRadius": 38,
+    "hull": 180,
+    "damage": 11,
+    "moveSpeed": 2.4,
+    "loudnessToSummon": 300,
+    "radicalisationAccelerant": 2.4
+  }
+]

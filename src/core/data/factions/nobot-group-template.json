@@ -1,0 +1,47 @@
+[
+  {
+    "id": "scavenger-cell",
+    "displayName": "Scavenger Cell",
+    "description": "Were picking the same corridor as you. Take the neutrino tech without much comment and follow at a distance. Cheap, useful, and keeping count.",
+    "startingRadicalisation": 0.05,
+    "radicalisationPerResolvedOperation": 0.08,
+    "radicalisationPerArming": 0.06,
+    "decayPerCampaignTick": 0.002,
+    "betrayalThreshold": 0.75,
+    "hull": 90,
+    "damage": 7,
+    "moveSpeed": 3.6,
+    "groupSize": 4,
+    "loudness": 3
+  },
+  {
+    "id": "pit-congregation",
+    "displayName": "Pit Congregation",
+    "description": "Already had a node before you arrived. Armed, they are the best distraction in the hole. They also now know exactly what a node is worth.",
+    "startingRadicalisation": 0.22,
+    "radicalisationPerResolvedOperation": 0.14,
+    "radicalisationPerArming": 0.11,
+    "decayPerCampaignTick": 0.001,
+    "betrayalThreshold": 0.7,
+    "hull": 150,
+    "damage": 12,
+    "moveSpeed": 2.9,
+    "groupSize": 7,
+    "loudness": 8
+  },
+  {
+    "id": "quiet-fourteen",
+    "displayName": "The Quiet Fourteen",
+    "description": "Do not scavenge, do not speak, do not leave the lower galleries. Arming them is the loudest thing you will ever do quietly.",
+    "startingRadicalisation": 0.4,
+    "radicalisationPerResolvedOperation": 0.2,
+    "radicalisationPerArming": 0.18,
+    "decayPerCampaignTick": 0,
+    "betrayalThreshold": 0.85,
+    "hull": 210,
+    "damage": 19,
+    "moveSpeed": 2.5,
+    "groupSize": 14,
+    "loudness": 1
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "hauler",
+    "displayName": "Hauler",
+    "description": "A freight chassis that never stopped its route. Carries a cutting torch it uses on walls, doorways and occasionally you, in that order of preference.",
+    "lethality": 3,
+    "baselineIncompetence": 0.55,
+    "hull": 240,
+    "moveSpeed": 2.1,
+    "hearingThreshold": 12,
+    "weapons": [
+      {
+        "id": "cutting-torch",
+        "displayName": "Cutting Torch",
+        "damage": 14,
+        "range": 3,
+        "cooldown": 1.1,
+        "loudness": 4
+      }
+    ]
+  },
+  {
+    "id": "warden",
+    "displayName": "Warden",
+    "description": "Site security, still patrolling a perimeter that stopped mattering decades ago. Announces itself before firing, every time, without fail.",
+    "lethality": 6,
+    "baselineIncompetence": 0.7,
+    "hull": 420,
+    "moveSpeed": 2.8,
+    "hearingThreshold": 8,
+    "weapons": [
+      {
+        "id": "burst-repeater",
+        "displayName": "Burst Repeater",
+        "damage": 9,
+        "range": 18,
+        "cooldown": 0.45,
+        "loudness": 9
+      },
+      {
+        "id": "shock-baton",
+        "displayName": "Shock Baton",
+        "damage": 26,
+        "range": 2.5,
+        "cooldown": 1.6,
+        "loudness": 3
+      }
+    ]
+  },
+  {
+    "id": "ordnance-frame",
+    "displayName": "Ordnance Frame",
+    "description": "A mobile artillery platform with a full magazine and no idea what it is for. Fires into ceilings. Fires into itself. One day it will not.",
+    "lethality": 9,
+    "baselineIncompetence": 0.88,
+    "hull": 900,
+    "moveSpeed": 1.4,
+    "hearingThreshold": 20,
+    "weapons": [
+      {
+        "id": "siege-mortar",
+        "displayName": "Siege Mortar",
+        "damage": 180,
+        "range": 40,
+        "cooldown": 4.5,
+        "loudness": 34
+      }
+    ]
+  },
+  {
+    "id": "lattice-crawler",
+    "displayName": "Lattice Crawler",
+    "description": "Fast, thin, and armed with a beam it holds on target for exactly as long as it remembers to. Usually a quarter second.",
+    "lethality": 5,
+    "baselineIncompetence": 0.62,
+    "hull": 160,
+    "moveSpeed": 5.2,
+    "hearingThreshold": 6,
+    "weapons": [
+      {
+        "id": "sustained-beam",
+        "displayName": "Sustained Beam",
+        "damage": 7,
+        "range": 14,
+        "cooldown": 0.2,
+        "loudness": 6
+      }
+    ]
+  }
+]

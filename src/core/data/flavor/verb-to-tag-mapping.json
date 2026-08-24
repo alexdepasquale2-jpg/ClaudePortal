@@ -1,0 +1,47 @@
+[
+  {
+    "id": "militant-engagement",
+    "tag": "Militant",
+    "displayName": "Militant",
+    "verbs": ["goliath-destroyed", "shot-fired", "held-position-under-fire", "sancient-killed"],
+    "weightPerVerb": 1,
+    "consequenceSummary": "PENDING — the locked consequence for Militant has not been chosen. See docs/GAPS.md. Must not ship as a bare label."
+  },
+  {
+    "id": "logistics-throughput",
+    "tag": "Logistics",
+    "displayName": "Logistics",
+    "verbs": ["refinery-built", "pipeline-linked", "material-hauled", "stockpile-deposited"],
+    "weightPerVerb": 1,
+    "consequenceSummary": "PENDING — the locked consequence for Logistics has not been chosen. See docs/GAPS.md."
+  },
+  {
+    "id": "diplomatic-contact",
+    "tag": "Diplomatic",
+    "displayName": "Diplomatic",
+    "verbs": ["nobot-armed", "nobot-group-escorted", "betrayal-averted"],
+    "weightPerVerb": 1,
+    "consequenceSummary": "PENDING — the locked consequence for Diplomatic has not been chosen. See docs/GAPS.md."
+  },
+  {
+    "id": "subversive-quiet",
+    "tag": "Subversive",
+    "displayName": "Subversive",
+    "verbs": ["node-lit-undetected", "chrome-installed", "trojan-node-placed", "extracted-unseen"],
+    "weightPerVerb": 1,
+    "consequenceSummary": "PENDING — the locked consequence for Subversive has not been chosen. See docs/GAPS.md."
+  },
+  {
+    "id": "expedition-reach",
+    "tag": "Expedition",
+    "displayName": "Expedition",
+    "verbs": [
+      "distance-travelled",
+      "new-chamber-entered",
+      "site-fully-surveyed",
+      "pyron-chrome-found"
+    ],
+    "weightPerVerb": 1,
+    "consequenceSummary": "PENDING — the locked consequence for Expedition has not been chosen. See docs/GAPS.md."
+  }
+]

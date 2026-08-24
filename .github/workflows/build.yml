@@ -1,0 +1,28 @@
+name: build
+
+# The design doc originally called for per-OS build workflows (windows/linux/macos).
+# SkyNeet Survivors targets the browser, so there is exactly one build artifact.
+# See docs/SCOPE-LEDGER.md for why those three workflows were dropped rather than faked.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  web:
+    name: web bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skyneet-web
+          path: dist
+          retention-days: 14

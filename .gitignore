@@ -1,0 +1,30 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.local
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Generated tool output
+tools/**/out/

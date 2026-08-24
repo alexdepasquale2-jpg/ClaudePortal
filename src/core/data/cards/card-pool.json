@@ -1,0 +1,93 @@
+[
+  {
+    "id": "wider-sweep",
+    "displayName": "Wider Sweep",
+    "description": "Auto-fire acquires further out. You will walk toward things sooner than you meant to.",
+    "scope": "run",
+    "weight": 10,
+    "rarity": "common",
+    "maxStacks": 4,
+    "effects": [{ "target": "autofire-range", "operation": "multiply", "value": 1.18 }],
+    "pillar": "Greed"
+  },
+  {
+    "id": "padded-boots",
+    "displayName": "Padded Boots",
+    "description": "Movement stops contributing to the noise field. The corridor gets longer and quieter at once.",
+    "scope": "run",
+    "weight": 6,
+    "rarity": "uncommon",
+    "maxStacks": 1,
+    "effects": [{ "target": "movement-loudness", "operation": "multiply", "value": 0.25 }],
+    "pillar": "Dread"
+  },
+  {
+    "id": "overdriven-solidifier",
+    "displayName": "Overdriven Solidifier",
+    "description": "Walls go up in half the time and twice the noise. The fort becomes ridiculous faster, and so does everything else.",
+    "scope": "run",
+    "weight": 5,
+    "rarity": "uncommon",
+    "maxStacks": 2,
+    "effects": [
+      { "target": "solidify-duration", "operation": "multiply", "value": 0.5 },
+      { "target": "solidify-loudness", "operation": "multiply", "value": 2 }
+    ],
+    "pillar": "Power"
+  },
+  {
+    "id": "catalog-reader",
+    "displayName": "Catalog Reader",
+    "description": "You can see what a Goliath is carrying before it remembers it is carrying it.",
+    "scope": "run",
+    "weight": 4,
+    "rarity": "rare",
+    "maxStacks": 1,
+    "effects": [{ "target": "catalog-visibility", "operation": "set", "value": 1 }],
+    "pillar": "Panic"
+  },
+  {
+    "id": "deep-pockets",
+    "displayName": "Deep Pockets",
+    "description": "Carry more out. Assuming you get out.",
+    "scope": "run",
+    "weight": 9,
+    "rarity": "common",
+    "maxStacks": 5,
+    "effects": [{ "target": "backpack-capacity", "operation": "add", "value": 25 }],
+    "pillar": "Greed"
+  },
+  {
+    "id": "node-baffling",
+    "displayName": "Node Baffling",
+    "description": "A lit node runs quieter. Not quiet. Quieter.",
+    "scope": "run",
+    "weight": 5,
+    "rarity": "uncommon",
+    "maxStacks": 3,
+    "effects": [{ "target": "node-loudness", "operation": "multiply", "value": 0.8 }],
+    "pillar": "Dread"
+  },
+  {
+    "id": "held-ground",
+    "displayName": "Held Ground",
+    "description": "Every second spent inside your own fort's footprint sharpens your fire. Leaving resets it.",
+    "scope": "run",
+    "weight": 3,
+    "rarity": "rare",
+    "maxStacks": 1,
+    "effects": [{ "target": "in-fort-damage-ramp", "operation": "add", "value": 0.02 }],
+    "pillar": "Power"
+  },
+  {
+    "id": "last-word",
+    "displayName": "Last Word",
+    "description": "Dying at a site you lit costs the site anyway — but the record shows you contested it.",
+    "scope": "run",
+    "weight": 2,
+    "rarity": "rare",
+    "maxStacks": 1,
+    "effects": [{ "target": "contested-on-death", "operation": "set", "value": 1 }],
+    "pillar": "Consequence"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "baseRadius": 30,
+  "radiusPerLitNode": 8,
+  "peakStrength": 1,
+  "falloff": "smoothstep",
+  "competenceFloorAtPeak": 0.35,
+  "overlapCombination": "sum-clamped",
+  "contestThreshold": 0.25,
+  "contestedFloorMultiplier": 1.6,
+  "growthTicks": 20
+}

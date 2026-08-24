@@ -1,0 +1,74 @@
+[
+  {
+    "id": "steep-default",
+    "displayName": "Steep",
+    "view": "TopDown",
+    "isDefault": true,
+    "unlockedBy": null,
+    "pitchDegrees": 72,
+    "distance": 24,
+    "height": 22,
+    "fieldOfView": 45,
+    "followSmoothing": 0.02
+  },
+  {
+    "id": "steep-wide",
+    "displayName": "Steep (Wide)",
+    "view": "TopDown",
+    "isDefault": false,
+    "unlockedBy": "shoulder-rig",
+    "pitchDegrees": 68,
+    "distance": 32,
+    "height": 28,
+    "fieldOfView": 52,
+    "followSmoothing": 0.04
+  },
+  {
+    "id": "shoulder-default",
+    "displayName": "Shoulder",
+    "view": "ThirdPerson",
+    "isDefault": true,
+    "unlockedBy": null,
+    "pitchDegrees": 14,
+    "distance": 5.5,
+    "height": 1.9,
+    "fieldOfView": 62,
+    "followSmoothing": 0.008
+  },
+  {
+    "id": "shoulder-tight",
+    "displayName": "Shoulder (Tight)",
+    "view": "ThirdPerson",
+    "isDefault": false,
+    "unlockedBy": "shoulder-rig",
+    "pitchDegrees": 8,
+    "distance": 3.2,
+    "height": 1.7,
+    "fieldOfView": 70,
+    "followSmoothing": 0.004
+  },
+  {
+    "id": "eyes-default",
+    "displayName": "Eyes",
+    "view": "FirstPerson",
+    "isDefault": true,
+    "unlockedBy": null,
+    "pitchDegrees": 0,
+    "distance": 0,
+    "height": 1.65,
+    "fieldOfView": 78,
+    "followSmoothing": 0
+  },
+  {
+    "id": "eyes-wide",
+    "displayName": "Eyes (Wide)",
+    "view": "FirstPerson",
+    "isDefault": false,
+    "unlockedBy": "eyes-down",
+    "pitchDegrees": 0,
+    "distance": 0,
+    "height": 1.65,
+    "fieldOfView": 92,
+    "followSmoothing": 0
+  }
+]

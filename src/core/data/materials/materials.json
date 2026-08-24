@@ -1,0 +1,36 @@
+[
+  {
+    "id": "scrap",
+    "tier": "Scrap",
+    "displayName": "Scrap",
+    "description": "Loose machine debris. Everywhere, worth almost nothing, and the reason you walk one more corridor.",
+    "weight": 1,
+    "forgeable": false
+  },
+  {
+    "id": "rack",
+    "tier": "Rack",
+    "displayName": "Rack",
+    "description": "Intact structural framing pulled from a dead Goliath. The first material that makes a fort look deliberate.",
+    "weight": 4,
+    "forgeable": true
+  },
+  {
+    "id": "plate",
+    "tier": "Plate",
+    "displayName": "Plate",
+    "description": "Refined armour stock. Heavy, slow to produce, and the difference between a wall and a delay.",
+    "weight": 9,
+    "forgeable": true
+  },
+  {
+    "id": "pyron-chrome",
+    "tier": "PyronChrome",
+    "displayName": "Pyron Chrome",
+    "description": "Magnetic plasma metal alloy. Found, never forged. Wrapped around a primary node it swallows the signature and buys you time you did not earn.",
+    "weight": 6,
+    "forgeable": false,
+    "noiseSignatureMultiplier": 0.35,
+    "safeHoldExtension": 12
+  }
+]

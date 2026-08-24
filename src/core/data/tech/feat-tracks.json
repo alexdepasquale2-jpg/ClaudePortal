@@ -1,0 +1,74 @@
+[
+  {
+    "id": "first-flip",
+    "displayName": "First Flip",
+    "description": "Change the owner of a site. Any site, any direction. The campaign has now happened to you.",
+    "track": "Extracted",
+    "metric": "ownership-flips",
+    "threshold": 1,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "armed-and-kept",
+    "displayName": "Armed and Kept",
+    "description": "Extract from five operations alongside a Nobot group that has not yet turned on you.",
+    "track": "Extracted",
+    "metric": "operations-with-allied-nobots",
+    "threshold": 5,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "found-the-mass",
+    "displayName": "Found the Mass",
+    "description": "Bring a usable quantity of Pyron Chrome to the surface. Campaign-level news.",
+    "track": "Extracted",
+    "metric": "pyron-chrome-extracted",
+    "threshold": 1,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "held-the-node",
+    "displayName": "Held the Node",
+    "description": "Die at a lit primary node rather than leaving it. The site is lost. The record says how.",
+    "track": "Died",
+    "metric": "died-at-lit-primary",
+    "threshold": 1,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "clown-no-more",
+    "displayName": "Clown No More",
+    "description": "Be killed by a Goliath within four seconds of it being jacked. You watched it learn.",
+    "track": "Died",
+    "metric": "killed-by-freshly-jacked",
+    "threshold": 1,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "ridiculous",
+    "displayName": "Ridiculous",
+    "description": "Solidify two hundred pieces in one operation and then die in the middle of them.",
+    "track": "Died",
+    "metric": "pieces-solidified",
+    "threshold": 200,
+    "accumulation": "single-run"
+  },
+  {
+    "id": "walked-away",
+    "displayName": "Walked Away",
+    "description": "Abandon an operation with a lit node still burning behind you. Somebody will find it.",
+    "track": "Abandoned",
+    "metric": "abandoned-with-lit-node",
+    "threshold": 1,
+    "accumulation": "campaign-total"
+  },
+  {
+    "id": "read-the-room",
+    "displayName": "Read the Room",
+    "description": "Abandon three operations before a Sancient ever arrives. Knowing when not to is a skill.",
+    "track": "Abandoned",
+    "metric": "abandoned-before-sancient",
+    "threshold": 3,
+    "accumulation": "campaign-total"
+  }
+]

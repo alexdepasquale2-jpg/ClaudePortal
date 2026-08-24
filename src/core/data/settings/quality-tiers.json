@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mobile",
+    "displayName": "Mobile",
+    "maxPixelRatio": 2,
+    "shadows": "off",
+    "maxSimultaneousEnemies": 60,
+    "maxParticles": 300,
+    "maxFortPieces": 250,
+    "drawDistance": 70,
+    "antialias": false,
+    "targetFps": 60
+  },
+  {
+    "id": "balanced",
+    "displayName": "Balanced",
+    "maxPixelRatio": 2,
+    "shadows": "hard",
+    "maxSimultaneousEnemies": 160,
+    "maxParticles": 1200,
+    "maxFortPieces": 700,
+    "drawDistance": 120,
+    "antialias": true,
+    "targetFps": 60
+  },
+  {
+    "id": "high",
+    "displayName": "High",
+    "maxPixelRatio": 3,
+    "shadows": "soft",
+    "maxSimultaneousEnemies": 400,
+    "maxParticles": 4000,
+    "maxFortPieces": 2000,
+    "drawDistance": 200,
+    "antialias": true,
+    "targetFps": 60
+  }
+]

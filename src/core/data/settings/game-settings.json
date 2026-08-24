@@ -1,0 +1,14 @@
+{
+  "defaultView": "TopDown",
+  "masterVolume": 0.8,
+  "musicVolume": 0.5,
+  "sfxVolume": 0.9,
+  "lookSensitivity": 1,
+  "invertLookY": false,
+  "showLoudnessNumeric": false,
+  "buildModeToggle": true,
+  "reducedMotion": false,
+  "largeTouchTargets": false,
+  "autosaveOnResolve": true,
+  "abandonHoldSeconds": 2
+}

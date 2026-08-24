@@ -1,0 +1,54 @@
+[
+  {
+    "id": "service-galleries",
+    "displayName": "Service Galleries",
+    "description": "Maintenance corridors under a dead surface plant. Narrow, echoing, and full of things that were never meant to be down here for this long.",
+    "noisePropagation": 1.4,
+    "ambientLoudness": 1,
+    "materialWeights": { "Scrap": 60, "Rack": 30, "Plate": 9, "PyronChrome": 1 },
+    "pyronChromeChance": 0.03,
+    "goliathIds": ["hauler", "warden"],
+    "nobotGroupIds": ["scavenger-cell"],
+    "greedDistance": 45,
+    "baseCompetenceFloor": 0.05
+  },
+  {
+    "id": "collapsed-foundry",
+    "displayName": "Collapsed Foundry",
+    "description": "It still runs. Nobody asked it to. The heat covers your noise and hides theirs, and the good plate is always under the part that is still moving.",
+    "noisePropagation": 0.7,
+    "ambientLoudness": 6,
+    "materialWeights": { "Scrap": 30, "Rack": 35, "Plate": 33, "PyronChrome": 2 },
+    "pyronChromeChance": 0.06,
+    "goliathIds": ["hauler", "ordnance-frame", "lattice-crawler"],
+    "nobotGroupIds": ["pit-congregation"],
+    "greedDistance": 80,
+    "baseCompetenceFloor": 0.1
+  },
+  {
+    "id": "signal-vault",
+    "displayName": "Signal Vault",
+    "description": "A buried relay hall. Machine signal almost works here on its own, which is why the catalog remembers more than it should and why Sancients arrive early.",
+    "noisePropagation": 1.8,
+    "ambientLoudness": 0.5,
+    "materialWeights": { "Scrap": 25, "Rack": 25, "Plate": 45, "PyronChrome": 5 },
+    "pyronChromeChance": 0.12,
+    "goliathIds": ["warden", "ordnance-frame"],
+    "nobotGroupIds": ["quiet-fourteen"],
+    "greedDistance": 110,
+    "baseCompetenceFloor": 0.25
+  },
+  {
+    "id": "flooded-cut",
+    "displayName": "Flooded Cut",
+    "description": "Waist-deep and slow. Everything you do is quieter and everything you do takes longer, which is the same bet made twice.",
+    "noisePropagation": 0.45,
+    "ambientLoudness": 2,
+    "materialWeights": { "Scrap": 45, "Rack": 40, "Plate": 14, "PyronChrome": 1 },
+    "pyronChromeChance": 0.04,
+    "goliathIds": ["lattice-crawler", "hauler"],
+    "nobotGroupIds": ["scavenger-cell", "quiet-fourteen"],
+    "greedDistance": 60,
+    "baseCompetenceFloor": 0.08
+  }
+]

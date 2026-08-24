@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@campaign/*": ["src/campaign/*"],
+      "@gameplay/*": ["src/gameplay/*"],
+      "@ui/*": ["src/ui/*"],
+      "@scenes/*": ["src/scenes/*"],
+      "@render/*": ["src/render/*"]
+    }
+  },
+  "include": ["src", "tests", "tools", "vite.config.ts", "playwright.config.ts", "eslint.config.js"]
+}
