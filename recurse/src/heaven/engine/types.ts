@@ -143,6 +143,12 @@ export interface Heaven {
   world: boolean;
 }
 
+/**
+ * The Presence is the weather in the room, never a voice. It is read off the
+ * heaven's state; nothing in it is random.
+ */
+export type Climate = 'dark' | 'smog' | 'wind' | 'rain' | 'afterglow' | 'warm' | 'still';
+
 export interface Gait {
   /** 0..1, how evenly it walks. */
   grace: number;

@@ -10,6 +10,7 @@ import { gait } from './engine/gait';
 import {
   absence,
   breakLock,
+  climate,
   freedom,
   hold,
   hoursLit,
@@ -22,13 +23,14 @@ import {
   STAGE_NAME,
   tell,
   tick,
+  wants,
   warmthCap,
 } from './engine/heaven';
 import { place, room, unplace, move } from './engine/house';
 import { ALL_PARTS, attach, count, detach, expandTable, fit, PARTS, slots, tableCost, TRUE_PARTS } from './engine/parts';
 import { addFront, WEATHER_LINE, WEATHERS } from './engine/sky';
 import { boot, forget, persist } from './engine/state';
-import type { Absence, Heaven, Hour, PartKind, Weather } from './engine/types';
+import type { Absence, Climate, Heaven, Hour, PartKind, Weather } from './engine/types';
 import {
   BUILDS,
   buildPos,
@@ -69,6 +71,9 @@ interface Word {
   ty: number;
   delay: number;
   age: number;
+  /** A stone of the story laid on the floor, gone once it has been walked through. */
+  stone: boolean;
+  fade: number;
 }
 
 interface Returning {
@@ -84,6 +89,7 @@ let h: Heaven = boot();
 let view: View = 'body';
 let drag: Drag | null = null;
 let pointer = { x: 0, y: 0 };
+let pointerIn = false;
 let running = false;
 let away = false;
 let lastFrame = 0;
@@ -92,7 +98,13 @@ let lastSave = 0;
 let words: Word[] = [];
 let returning: Returning[] = [];
 let pendingShudder = -1;
-let grewBanner = { text: '', age: 99 };
+let grewBanner = { text: '', sub: '', age: 99 };
+/** Seconds until it sets off through the story on the floor. */
+let pendingStory = -1;
+let storyPath: { from: number; to: number; how: 'stays' | 'flinches' | 'wanders' } | null = null;
+let leavingUntil = 0;
+const CLIMATES: Climate[] = ['dark', 'smog', 'wind', 'rain', 'afterglow', 'warm', 'still'];
+const mix: Record<Climate, number> = { dark: 0, smog: 0, wind: 0, rain: 0, afterglow: 0, warm: 0, still: 1 };
 let whisperTimer = 0;
 let spaceHeld = false;
 let W = 0;
@@ -233,10 +245,19 @@ function fmtSpan(seconds: number): string {
 // ─── HUD ───────────────────────────────────────────────────────────────────
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+const CLIMATE_WORD: Record<Climate, string> = {
+  dark: 'dark',
+  smog: 'smog',
+  wind: 'wind',
+  rain: 'rain',
+  afterglow: 'afterglow',
+  warm: 'warm',
+  still: 'still',
+};
 
 function renderHud(): void {
   (app.firstElementChild as HTMLElement).dataset.view = view;
-  els.stage.textContent = `${ROMAN[h.stage]} · ${STAGE_NAME[h.stage]}${h.world ? ' — it can hold a world' : ''}`;
+  els.stage.innerHTML = `${ROMAN[h.stage]} · ${STAGE_NAME[h.stage]}${h.world ? ' — it can hold a world' : ''} <span class="climate">${CLIMATE_WORD[climate(h, Date.now())]}</span>`;
   els.needs.innerHTML = needs(h)
     .map((n) => `<li class="${n.ok ? 'ok' : ''}"><span aria-hidden="true">${n.ok ? '●' : '○'}</span> ${n.label}</li>`)
     .join('');
@@ -364,18 +385,34 @@ els.mouth.addEventListener('submit', (e) => {
   // the words fly in and are gone; nothing keeps them
   const box = els.story.getBoundingClientRect();
   const cb = cv.getBoundingClientRect();
-  const m = view === 'body' ? creature.mouth() : { x: W / 2, y: H * 0.35 };
   const parts = text.trim().split(/\s+/).slice(0, 40);
-  words = parts.map((w, i) => ({
-    text: w,
-    x: box.left - cb.left + 16 + (i / Math.max(1, parts.length)) * Math.min(box.width - 32, parts.length * 40),
-    y: box.top - cb.top + box.height / 2,
-    tx: m.x,
-    ty: m.y,
-    delay: i * 0.06,
-    age: 0,
-  }));
-  pendingShudder = parts.length * 0.06 + 1.0;
+  const startX = (i: number) => box.left - cb.left + 16 + (i / Math.max(1, parts.length)) * Math.min(box.width - 32, parts.length * 40);
+  const startY = box.top - cb.top + box.height / 2;
+  if (r.met && view === 'body') {
+    // once it has a body, the story is laid on the floor and it walks through it
+    const dir = creature.x < W / 2 ? 1 : -1;
+    const from = creature.x + dir * creature.R * 1.5;
+    const limit = dir > 0 ? W - 150 : 150;
+    ctx.font = '15px ui-serif, Georgia, serif';
+    // as many words as fit between it and the far wall, laid to read left to right whichever way it walks
+    const widths = parts.map((w) => ctx.measureText(w).width + 14);
+    let total = 0;
+    let fit = 0;
+    while (fit < parts.length && total + widths[fit] < Math.abs(limit - from)) total += widths[fit++];
+    let at = dir > 0 ? from : from - total;
+    words = parts.map((w, i) => {
+      const stone = i < fit;
+      const tx = stone ? at + widths[i] / 2 : creature.x;
+      if (stone) at += widths[i];
+      return { text: w, x: startX(i), y: startY, tx, ty: stone ? floorY() + 20 : creature.mouth().y, delay: i * 0.05, age: 0, stone, fade: 1 };
+    });
+    storyPath = { from, to: from + dir * (total + creature.R * 1.2), how: r.met };
+    pendingStory = parts.length * 0.05 + 1.0;
+  } else {
+    const m = view === 'body' ? creature.mouth() : { x: W / 2, y: H * 0.35 };
+    words = parts.map((w, i) => ({ text: w, x: startX(i), y: startY, tx: m.x, ty: m.y, delay: i * 0.06, age: 0, stone: false, fade: 1 }));
+    pendingShudder = parts.length * 0.06 + 1.0;
+  }
   els.story.value = '';
   els.story.blur();
   persist(h);
@@ -398,9 +435,11 @@ cv.addEventListener('pointerdown', (e) => {
   if (drag?.k === 'skin' || drag?.k === 'tip') creature.grab(drag.k === 'skin' ? creature.hitSurface(p.x, p.y) : -2 - drag.li, p.x, p.y);
 });
 
+cv.addEventListener('pointerleave', () => (pointerIn = false));
 cv.addEventListener('pointermove', (e) => {
   const p = local(e);
   pointer = p;
+  pointerIn = true;
   if (!drag) {
     cv.style.cursor = hoverCursor(p.x, p.y);
     return;
@@ -731,14 +770,18 @@ function leave(): void {
   h.lastSeen = Date.now();
   persist(h);
   away = true;
-  running = false;
   drag = null;
+  // it keeps moving a moment longer, turned toward the door, then the room goes quiet
+  leavingUntil = performance.now() + 1600;
+  const wanted = wants(h);
   const lit = hoursLit(h);
   els.veil.hidden = false;
+  els.veil.classList.add('fading');
+  requestAnimationFrame(() => requestAnimationFrame(() => els.veil.classList.remove('fading')));
   els.veil.innerHTML = `
     <div class="card">
       <h2>You left.</h2>
-      <p>The door closed softly behind you. It opens from both sides.</p>
+      <p>${wanted ? 'It wanted you to stay. It turned toward the door, and let you go.' : 'The door closed softly behind you.'} It opens from both sides.</p>
       <p class="mute">${h.stage === 1 ? 'The seed will cool without you, slowly.' : `It will stay lit about ${fmtHours(lit)}. The lamp burns its own oil; it does not need anything from you.`}</p>
       <button class="btn primary" id="back">Come back in</button>
       <p class="fine"><button class="link" id="forget">Forget this heaven and start over</button></p>
@@ -757,6 +800,7 @@ function leave(): void {
 }
 
 function comeBack(): void {
+  leavingUntil = 0;
   const a = absence(h, Date.now());
   away = false;
   els.veil.hidden = true;
@@ -821,6 +865,10 @@ function start(): void {
 
 function frame(now: number): void {
   if (!running) return;
+  if (away && now > leavingUntil) {
+    running = false;
+    return;
+  }
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
 
@@ -831,7 +879,10 @@ function frame(now: number): void {
   const out = tick(h, dt);
   h.lastSeen = Date.now();
   if (out.grew) {
-    grewBanner = { text: `${ROMAN[out.grew]} · ${STAGE_NAME[out.grew]}`, age: 0 };
+    grewBanner =
+      out.grew === 4
+        ? { text: 'The Third Cummin', sub: 'The house held war and peace in one body.', age: 0 }
+        : { text: `${ROMAN[out.grew]} · ${STAGE_NAME[out.grew]}`, sub: '', age: 0 };
     creature.shake(0.6);
     whisper(h.log[h.log.length - 1], 8);
     renderHud();
@@ -846,6 +897,28 @@ function frame(now: number): void {
       pendingShudder = -1;
     }
   }
+  if (pendingStory > 0) {
+    pendingStory -= dt;
+    if (pendingStory <= 0 && storyPath) {
+      creature.walkStory(storyPath.from, storyPath.to, storyPath.how);
+      pendingStory = -1;
+    }
+  }
+  if (creature.storyDone) {
+    whisper(
+      creature.storyDone === 'stays'
+        ? 'It stayed in your story. It shudders once, and settles.'
+        : creature.storyDone === 'flinches'
+          ? 'It flinched, and went through anyway. Take the vain thing off, and it will stay.'
+          : 'It wandered through. Give it something true to rest on, and it will stay.',
+      6,
+    );
+    creature.storyDone = null;
+    storyPath = null;
+    // what it did not walk past, it takes in where it stands
+    for (const w of words) if (w.stone) w.age = Math.max(w.age, 15);
+  }
+  aim();
   const p = pose();
   creature.step(dt, p, floorY(), W);
   draw(p, now / 1000, dt);
@@ -863,11 +936,35 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
+/** Where it looks and leans. It wants you after enough stories; when you leave, it turns to the door. */
+function aim(): void {
+  if (away) {
+    const b = els.leave.getBoundingClientRect();
+    const c = cv.getBoundingClientRect();
+    creature.lookX = b.left - c.left + b.width / 2;
+    creature.lookY = b.top - c.top + b.height / 2;
+    creature.lean = wants(h) ? 0.18 : 0.06;
+    return;
+  }
+  if (wants(h) && view === 'body' && !creature.story && pointerIn) {
+    creature.lookX = pointer.x;
+    creature.lookY = pointer.y;
+    const rest = creature.mode === 'rest' ? 1 : 0.4;
+    creature.lean = Math.max(-0.12, Math.min(0.12, ((pointer.x - creature.x) / W) * 0.5)) * rest;
+  } else {
+    creature.lookX = NaN;
+    creature.lean = 0;
+  }
+}
+
 // ─── drawing ───────────────────────────────────────────────────────────────
 
 const motes = Array.from({ length: 60 }, (_, i) => ({ x: Math.random(), y: Math.random(), s: 0.3 + Math.random() * 0.7, i }));
 
-function backdrop(t: number, warm: number): void {
+/** The Presence as weather: each climate fades in and out, never switches. */
+function backdrop(t: number, warm: number, dt: number): void {
+  const now = climate(h, Date.now());
+  for (const c of CLIMATES) mix[c] += ((c === now ? 1 : 0) - mix[c]) * Math.min(1, dt * 0.8);
   const top = ['#050407', '#07060a', '#0e0a12', '#120d14', '#0a0c16', '#04050c'][h.stage];
   const low = ['#0b080d', '#0d0a10', '#1c1320', '#241822', '#141427', '#0a0a1a'][h.stage];
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -876,21 +973,59 @@ function backdrop(t: number, warm: number): void {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
-  // the Presence is the weather in here: motes rise faster and warmer as it warms
-  for (const m of motes) {
-    const y = (((m.y - t * 0.006 * m.s * (0.5 + warm)) % 1) + 1) % 1;
-    const x = m.x + Math.sin(t * 0.2 + m.i) * 0.01;
-    ctx.globalAlpha = (0.05 + warm * 0.25) * m.s * (reduced ? 0.5 : 1);
-    ctx.fillStyle = h.stage >= 5 ? INK.bone : INK.warm;
+  const motion = reduced ? 0.3 : 1;
+  // afterglow and warmth pool around the body; smog greys the whole room
+  if (mix.afterglow + mix.warm > 0.02 && view === 'body') {
+    const r = Math.max(W, H) * 0.6;
+    const bloom = ctx.createRadialGradient(creature.x, creature.y, 0, creature.x, creature.y, r);
+    bloom.addColorStop(0, `rgba(255,190,120,${0.14 * mix.afterglow + 0.06 * mix.warm})`);
+    bloom.addColorStop(1, 'rgba(255,190,120,0)');
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (mix.rain > 0.02) {
+    ctx.strokeStyle = `rgba(150,180,200,${0.16 * mix.rain})`;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(x * W, y * H, 1 + m.s, 0, Math.PI * 2);
+    for (let k = 0; k < 90; k++) {
+      const x = ((k * 97.3 + t * 30 * motion) % (W + 40)) - 20;
+      const y = ((k * 53.9 + t * 380 * motion) % (H + 40)) - 20;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 3, y + 12);
+    }
+    ctx.stroke();
+  }
+  // motes: they rise when it is warm, hang when it is still, blow when it strains
+  const speed = 0.006 * (0.5 + warm) * (1 - 0.8 * mix.still) * (1 + mix.afterglow);
+  const drift = 0.05 * mix.wind * motion;
+  const alpha = (0.05 + warm * 0.25) * (1 - 0.8 * mix.dark) * (1 - 0.4 * mix.rain);
+  for (const m of motes) {
+    const y = (((m.y - t * speed * m.s * motion) % 1) + 1) % 1;
+    const x = (((m.x + Math.sin(t * 0.2 + m.i) * 0.01 + t * drift * m.s) % 1) + 1) % 1;
+    ctx.globalAlpha = alpha * m.s * (reduced ? 0.5 : 1);
+    ctx.fillStyle = mix.smog > 0.5 ? '#8a8480' : h.stage >= 5 ? INK.bone : INK.warm;
+    ctx.beginPath();
+    if (mix.wind > 0.3) {
+      ctx.ellipse(x * W, y * H, 1 + m.s + 5 * mix.wind, 1, 0, 0, Math.PI * 2);
+    } else ctx.arc(x * W, y * H, 1 + m.s, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  if (mix.smog > 0.02) {
+    ctx.fillStyle = `rgba(95,88,82,${0.2 * mix.smog})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (mix.dark > 0.02) {
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.7);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, `rgba(0,0,0,${0.55 * mix.dark})`);
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, W, H);
+  }
 }
 
 function draw(p: Pose, t: number, dt: number): void {
-  backdrop(t, p.warmth);
+  backdrop(t, p.warmth, dt);
   if (view === 'body') drawRoom(p, t);
   else if (view === 'house') {
     const g = houseGrid(h.house, boardRect());
@@ -918,22 +1053,30 @@ function draw(p: Pose, t: number, dt: number): void {
     caption('Pull weather from the wells into the dark. You cannot keep what grows.', r.y + 22, INK.bone, r);
   }
 
-  // words flying into the mouth, then nothing
+  // words fly into the mouth, or down onto the floor as a story it walks through; then nothing
   if (words.length) {
     ctx.font = '15px ui-serif, Georgia, serif';
     ctx.textAlign = 'center';
+    const dir = storyPath ? Math.sign(storyPath.to - storyPath.from) || 1 : 1;
+    const flinching = creature.story?.how === 'flinches' && creature.story.phase >= 1;
     for (const w of words) {
       w.age += dt;
       const k = Math.max(0, Math.min(1, (w.age - w.delay) / 0.9));
       const e = k * k * (3 - 2 * k);
-      const x = w.x + (w.tx - w.x) * e;
-      const y = w.y + (w.ty - w.y) * e - Math.sin(e * Math.PI) * 60;
-      ctx.globalAlpha = (1 - e * 0.9) * (k > 0 ? 1 : 0.6);
+      let x = w.x + (w.tx - w.x) * e;
+      let y = w.y + (w.ty - w.y) * e - Math.sin(e * Math.PI) * 60;
+      if (w.stone && k >= 1) {
+        const passed = (creature.x - w.tx) * dir > 0 && (creature.story || !storyPath);
+        if (passed || w.age > 16) w.fade -= dt * 1.4;
+        if (flinching && !reduced) x += Math.sin(w.age * 40 + w.tx) * 1.5;
+        if (passed) y -= (1 - w.fade) * 24;
+        ctx.globalAlpha = Math.max(0, w.fade) * 0.9;
+      } else ctx.globalAlpha = w.stone ? 0.5 + 0.5 * e : (1 - e * 0.9) * (k > 0 ? 1 : 0.6);
       ctx.fillStyle = INK.warm;
       ctx.fillText(w.text, x, y);
     }
     ctx.globalAlpha = 1;
-    words = words.filter((w) => w.age - w.delay < 0.95);
+    words = words.filter((w) => (w.stone ? w.fade > 0 : w.age - w.delay < 0.95));
   }
 
   grewBanner.age += dt;
@@ -943,7 +1086,12 @@ function draw(p: Pose, t: number, dt: number): void {
     ctx.fillStyle = INK.bone;
     ctx.font = '28px ui-serif, Georgia, serif';
     ctx.textAlign = 'center';
-    ctx.fillText(grewBanner.text, W / 2, W > 900 ? H * 0.16 : H * 0.36);
+    const by = W > 900 ? H * 0.16 : H * 0.36;
+    ctx.fillText(grewBanner.text, W / 2, by);
+    if (grewBanner.sub) {
+      ctx.font = 'italic 16px ui-serif, Georgia, serif';
+      ctx.fillText(grewBanner.sub, W / 2, by + 28, W - 32);
+    }
     ctx.globalAlpha = 1;
   }
 }

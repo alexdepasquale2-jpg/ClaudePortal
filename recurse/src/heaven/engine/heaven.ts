@@ -1,9 +1,9 @@
 import { census, CITY_GOAL_HOMES, homes, fed, free as homeFree, newCity, tickCity } from './city';
-import { gait } from './gait';
+import { gait, meets, type Meeting } from './gait';
 import { holdsWarAndPeace, newHouse, room, settled, tickHouse } from './house';
 import { count, has, PARTS } from './parts';
 import { newSky, tickSky, WORLD_AT } from './sky';
-import type { Absence, Heaven, Stage } from './types';
+import type { Absence, Climate, Heaven, Stage } from './types';
 
 export const STAGE_NAME: Record<Stage, string> = {
   1: 'Seed',
@@ -18,6 +18,12 @@ export const HOLD_ONSET = 0.6;
 export const HOLD_RATE = 1.2;
 /** How long it settles after a story. Nothing you do shortens it. */
 export const STILL_MS = 9000;
+/** Once it has a body, it walks through the story first, then settles. */
+export const WALK_MS = 5000;
+/** Staying in a story warms it; flinching or wandering does not. */
+export const STAY_WARMTH = 2;
+/** Stories received before it starts to want you. */
+export const WANTS_AT = 3;
 /** Absence is counted up to a day. It does not need more than that from you. */
 export const ABSENCE_CAP = 24 * 3600;
 export const FACTORY_MULT = 2.5;
@@ -173,6 +179,17 @@ export function settling(h: Heaven, now: number): boolean {
 export interface Telling {
   received: boolean;
   why: string;
+  /** How it met the story, once it has a body to walk through one with. */
+  met?: Meeting;
+}
+
+export function stillFor(h: Heaven): number {
+  return STILL_MS + (h.stage >= 2 ? WALK_MS : 0);
+}
+
+/** It wants you once it has received enough of you. It still lets you leave. */
+export function wants(h: Heaven): boolean {
+  return h.loaf >= WANTS_AT && !isFactory(h) && h.warmth > 0;
 }
 
 /** The only place a story touches the engine. Its words are measured, never kept. */
@@ -190,9 +207,15 @@ export function tell(h: Heaven, text: string, now: number): Telling {
   }
   h.loaf += 1;
   h.warmth = Math.min(warmthCap(h), h.warmth + 3);
-  h.stillUntil = now + STILL_MS;
-  note(h, h.loaf === 1 ? 'The first story was received. It shuddered once, and settled.' : 'A story was received. It shuddered once, and settled.');
-  return { received: true, why: 'Received.' };
+  h.stillUntil = now + stillFor(h);
+  if (h.stage < 2) {
+    note(h, 'The first story was received. It shuddered once, and settled.');
+    return { received: true, why: 'Received.' };
+  }
+  const m = meets(h);
+  if (m.how === 'stays') h.warmth = Math.min(warmthCap(h), h.warmth + STAY_WARMTH);
+  note(h, m.why);
+  return { received: true, why: m.why, met: m.how };
 }
 
 // ─── the ladder ────────────────────────────────────────────────────────────
@@ -258,7 +281,7 @@ const GROWN: Record<Stage, string> = {
   1: '',
   2: 'It grew a body. Stretch it limbs. Give it things from the room.',
   3: 'Other hours have started to arrive. Give them rooms that do not eat each other.',
-  4: 'The house is a street now. Feed it without owning it.',
+  4: 'The Third Cummin: the house held war and peace in one body. Now it is a street. Feed it without owning it.',
   5: 'It is weather now. Other stories are growing in the dark. It cannot keep them.',
 };
 
@@ -275,6 +298,21 @@ export function grow(h: Heaven): Stage | null {
   h.stage = (h.stage + 1) as Stage;
   note(h, GROWN[h.stage]);
   return h.stage;
+}
+
+// ─── the Presence ──────────────────────────────────────────────────────────
+
+/** The weather in the room, read off what you built. The first rule that holds wins. */
+export function climate(h: Heaven, now: number): Climate {
+  if (isFactory(h)) return 'smog';
+  if (h.warmth < 0.5) return 'dark';
+  if (settling(h, now)) return 'afterglow';
+  if (h.stage >= 3 && h.house.cells.some((c) => c.hour && c.strain > 0.05)) return 'wind';
+  if (h.stage >= 2 && gait(h).limp > 0.3) return 'wind';
+  const grieving = (h.stage >= 3 && h.house.cells.some((c) => c.hour === 'grief')) || (h.stage >= 4 && h.city.tiles.includes('wound'));
+  if (grieving) return 'rain';
+  if (h.warmth / warmthCap(h) > 0.6) return 'warm';
+  return 'still';
 }
 
 // ─── time ──────────────────────────────────────────────────────────────────

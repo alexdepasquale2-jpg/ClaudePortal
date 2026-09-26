@@ -50,3 +50,17 @@ export function gait(h: Pick<Heaven, 'limbs' | 'parts'>): Gait {
   }
   return { grace, limp, rests, why };
 }
+
+export type Meeting = 'stays' | 'flinches' | 'wanders';
+
+/**
+ * How it meets a story it has just received: it walks through it. Vain parts
+ * make it flinch; a body that can rest stays in the middle of it; a body with
+ * nothing to rest on yet only wanders across.
+ */
+export function meets(h: Pick<Heaven, 'limbs' | 'parts'>): { how: Meeting; why: string } {
+  const g = gait(h);
+  if (h.parts.some((p) => PARTS[p.kind].truth === 'vain')) return { how: 'flinches', why: 'It flinched at your story. It is carrying something vain.' };
+  if (g.rests) return { how: 'stays', why: 'It walked into your story and stayed there.' };
+  return { how: 'wanders', why: 'It wandered across your story. It has nowhere in it to rest yet.' };
+}

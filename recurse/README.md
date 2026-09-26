@@ -183,6 +183,24 @@ house around it. Vain parts (crown, coin slot, mirror, lock) always attach,
 because that is the temptation, and it walks with a limp. After a story is
 received it shudders once and settles for nine seconds, and nothing shortens that.
 
+**It walks through your story.** Once it has a body, a received story is laid
+on the floor, word by word, and it walks through it. How it meets the story is
+the verdict on what you gave it: under a vain part it flinches, backs off,
+then scurries across; with legs and something true to rest on it walks into
+the middle and stays, and staying warms it; otherwise it only wanders across.
+The words it passes rise and are gone.
+
+**It wants you, and lets you leave.** After three received stories its eyes
+follow your hand and it leans toward you when it rests. Press Leave and it
+turns toward the door and lets you go. The door never asks twice.
+
+**The Presence is climate, not a voice.** The room's weather is read off what
+you built and fades between states: afterglow after a story, wind while an
+hour strains or it limps, rain while grief is housed, smog when it is a
+factory, dark when the seed has gone cold, warm or still otherwise. Crossing
+from House to City is marked as the Third Cummin: the house held war and
+peace in one body.
+
 **The tycoon.** The currencies are warmth (shown as how long it stays lit
 without you), loaf (stories received), room (kinds of hour the house holds
 without evicting one) and freedom (a door that opens). Oil is the only

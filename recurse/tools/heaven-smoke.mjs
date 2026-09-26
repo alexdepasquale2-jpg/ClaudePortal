@@ -137,6 +137,18 @@ await page.screenshot({ path: `${SHOTS}/h5-crown.png` });
 s = await save();
 if (!s.parts.some((p) => p.kind === 'crown')) fail('the crown did not attach');
 
+// tell it a story with a body: it is laid on the floor and it walks through it (and flinches: it wears a crown)
+await page.waitForTimeout(9000);
+await page.fill('#story', 'we walked to the river and back before dark');
+await page.press('#story', 'Enter');
+await page.waitForTimeout(1800);
+await page.screenshot({ path: `${SHOTS}/h5b-story-floor.png` });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${SHOTS}/h5c-flinch.png` });
+s = await save();
+if (s.loaf !== 2) fail(`the second story was not received: loaf ${s.loaf}`);
+if (JSON.stringify(s).includes('river')) fail('the save kept the story');
+
 // make it a factory, then break the lock
 await rewrite(() => {
   const s = JSON.parse(localStorage.getItem('heaven.save.v1'));
@@ -213,9 +225,13 @@ await page.screenshot({ path: `${SHOTS}/h11-firmament.png` });
 s = await save();
 if (s.sky.fronts.length < 1) fail('no weather front was made');
 
-// the door always works
+// the door always works; it wants you by now, and turns to the door
+await page.click('.tab[data-v="body"]');
+await page.mouse.move(W / 2, H / 2);
+await page.waitForTimeout(400);
 await page.click('#leave');
-await page.waitForTimeout(300);
+await page.waitForTimeout(1800);
+if (!(await page.locator('#veil').textContent()).includes('It wanted you to stay')) fail('it did not want you');
 await page.screenshot({ path: `${SHOTS}/h12-left.png` });
 await page.click('#back');
 await page.waitForTimeout(400);

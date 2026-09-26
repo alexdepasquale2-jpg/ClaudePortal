@@ -1,4 +1,4 @@
-import { isLeg } from '../engine/gait';
+import { isLeg, type Meeting } from '../engine/gait';
 import type { Attached, Gait, Limb, Stage } from '../engine/types';
 import { drawPart, INK } from './glyphs';
 
@@ -55,6 +55,15 @@ export class Creature {
   grabX = 0;
   grabY = 0;
   tips: { x: number; y: number }[] = [];
+  /** A story laid on the floor that it is walking through. */
+  story: { from: number; to: number; how: Meeting; phase: number; t: number } | null = null;
+  /** Set for one frame when it finishes a story; the caller clears it. */
+  storyDone: Meeting | null = null;
+  /** Where it is looking; NaN looks where it is going. */
+  lookX = NaN;
+  lookY = NaN;
+  /** Extra lean toward something it wants, set by the caller each frame. */
+  lean = 0;
   private t = 0;
   private floorY = 0;
   private roomW = 0;
@@ -150,6 +159,54 @@ export class Creature {
     this.idleFor = 0;
   }
 
+  /** Walk through a story laid on the floor between `from` and `to`. */
+  walkStory(from: number, to: number, how: Meeting): void {
+    this.story = { from, to, how, phase: 0, t: 0 };
+    this.mode = 'walk';
+    this.idleFor = 0;
+  }
+
+  private toward(target: number, speed: number, dt: number, g: Gait): boolean {
+    const dx = target - this.x;
+    const hop = g.limp * 0.5 * (Math.sin(this.phase * 0.5) > 0 ? 1 : 0.2);
+    this.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt * (1 - hop));
+    this.phase += dt * (3 + speed / 14);
+    this.walkTo = target;
+    this.mode = 'walk';
+    return Math.abs(dx) < 2;
+  }
+
+  private stepStory(dt: number, g: Gait): void {
+    const s = this.story!;
+    const speed = 18 + 46 * g.grace;
+    const dir = Math.sign(s.to - s.from) || 1;
+    const finish = () => {
+      this.shake(1);
+      this.storyDone = s.how;
+      this.story = null;
+      this.mode = g.rests ? 'rest' : 'fidget';
+      this.idleFor = 0;
+    };
+    if (s.how === 'stays') {
+      if (s.phase === 0 && this.toward((s.from + s.to) / 2, speed, dt, g)) s.phase = 1;
+      else if (s.phase === 1) {
+        this.mode = 'rest';
+        s.t += dt;
+        if (s.t > 2.4) finish();
+      }
+    } else if (s.how === 'flinches') {
+      if (s.phase === 0 && this.toward(s.from, speed, dt, g)) {
+        s.phase = 1;
+        this.shake(0.7);
+      } else if (s.phase === 1 && this.toward(s.from - dir * 55, speed * 3, dt, g)) s.phase = 2;
+      else if (s.phase === 2) {
+        this.mode = 'fidget';
+        s.t += dt;
+        if (s.t > 0.7) s.phase = 3;
+      } else if (s.phase === 3 && this.toward(s.to, speed * 1.7, dt, g)) finish();
+    } else if (this.toward(s.to, speed * 0.8, dt, g)) finish();
+  }
+
   grab(i: number, x: number, y: number): void {
     this.grabbed = i;
     this.grabX = x;
@@ -192,7 +249,9 @@ export class Creature {
 
     // behaviour
     this.idleFor += dt;
-    if (p.stage >= 2 && !p.settling && this.grabbed < 0) {
+    if (this.story && this.grabbed < 0 && p.stage >= 2) {
+      this.stepStory(dt, g);
+    } else if (p.stage >= 2 && !p.settling && this.grabbed < 0) {
       if (this.mode === 'walk') {
         const speed = 18 + 46 * g.grace;
         const dx = this.walkTo - this.x;
@@ -217,7 +276,7 @@ export class Creature {
         this.tryOut();
       }
     }
-    const resting = (this.mode === 'rest' || p.settling) && p.stage >= 2;
+    const resting = (this.mode === 'rest' || (p.settling && !this.story)) && p.stage >= 2;
     this.sink += ((resting ? 1 : 0) - this.sink) * Math.min(1, dt * 0.8);
 
     // posture
@@ -227,7 +286,7 @@ export class Creature {
     const want = this.standY(p) + bob + lurch + this.sink * this.R * 0.12;
     // a seed stays where it was put; a body stands on its legs
     if (p.stage >= 2) this.y += (want - this.y) * Math.min(1, dt * 6);
-    const tiltWant = (walking || this.mode === 'fidget' ? g.limp * 0.22 * Math.sin(this.phase * 0.5) : 0) + (p.factory ? 0.06 * Math.sin(this.t * 7) : 0);
+    const tiltWant = this.lean + (walking || this.mode === 'fidget' ? g.limp * 0.22 * Math.sin(this.phase * 0.5) : 0) + (p.factory ? 0.06 * Math.sin(this.t * 7) : 0);
     this.tilt += (tiltWant - this.tilt) * Math.min(1, dt * 5);
 
     // the mass
@@ -391,7 +450,18 @@ export class Creature {
           ctx.arc(cx, cy, Math.max(1.5, this.R * 0.05), 0.1 * Math.PI, 0.9 * Math.PI);
           ctx.stroke();
         } else {
-          ctx.arc(cx, cy, Math.max(1.5, this.R * 0.045), 0, TAU);
+          // it looks at what it wants, or where it is going
+          let lx = Math.sign(this.walkTo - this.x) * 0.5;
+          let ly = 0;
+          if (!Number.isNaN(this.lookX)) {
+            const dx = this.lookX - cx;
+            const dy = this.lookY - cy;
+            const d = Math.hypot(dx, dy) || 1;
+            lx = dx / d;
+            ly = dy / d;
+          }
+          const o = this.R * 0.035;
+          ctx.arc(cx + lx * o, cy + ly * o, Math.max(1.5, this.R * 0.045), 0, TAU);
           ctx.fill();
         }
       }

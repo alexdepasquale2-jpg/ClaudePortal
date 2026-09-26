@@ -14,6 +14,12 @@ import {
   oilPerMinute,
   release,
   STILL_MS,
+  stillFor,
+  WALK_MS,
+  climate,
+  wants,
+  STAY_WARMTH,
+  warmthCap,
   tell,
   tick,
 } from '../src/heaven/engine/heaven';
@@ -87,6 +93,9 @@ describe('seed: hold, do not tap', () => {
     expect(again.received).toBe(false);
     expect(tell(h, 'and another thing happened', T0 + STILL_MS + 1).received).toBe(true);
     expect(h.loaf).toBe(2);
+    // with a body it walks through the story first, so the next pause is longer
+    expect(tell(h, 'one more thing happened', T0 + 2 * STILL_MS + 2).received).toBe(false);
+    expect(tell(h, 'one more thing happened', T0 + 2 * STILL_MS + WALK_MS + 2).received).toBe(true);
   });
 });
 
@@ -156,7 +165,7 @@ describe('freedom: a heaven that cannot be left is a factory', () => {
     expect(isFactory(h)).toBe(true);
     expect(freedom(h).free).toBe(false);
     expect(oilPerMinute(h)).toBeGreaterThan(honest * 2);
-    expect(tell(h, 'can you hear this one', T0 + STILL_MS + 1).received).toBe(false);
+    expect(tell(h, 'can you hear this one', T0 + STILL_MS + WALK_MS + 1).received).toBe(false);
   });
 
   it('it cannot grow while it is a factory, even when every other need is met', () => {
@@ -229,11 +238,12 @@ describe('tycoon: it grows while you are gone, and is not hungry', () => {
     const h = creature();
     const secret = 'zebra-orchard-lantern';
     tell(h, `a thing about ${secret} and me`, T0 + STILL_MS + 5);
+    const later = T0 + STILL_MS + 5 + stillFor(h) + 1;
     attach(h, 'table', DOWN);
     attach(h, 'coin', 0);
     const loaf = h.loaf;
     const oil = h.oil;
-    const billed = tell(h, `another ${secret} story please`, T0 + 3 * STILL_MS);
+    const billed = tell(h, `another ${secret} story please`, later);
     expect(billed.received).toBe(false);
     expect(h.loaf).toBe(loaf);
     expect(h.oil).toBeGreaterThan(oil);
@@ -345,5 +355,84 @@ describe('firmament: weather, not conquest', () => {
     addFront(sky, wrong, s.x, s.y);
     tickSky(sky, 10, 0, () => 0.3);
     expect(s.growth).toBe(0);
+  });
+});
+
+describe('it walks through your story, and either flinches or stays', () => {
+  it('stays when it can rest, and staying warms it', () => {
+    const h = creature();
+    attach(h, 'table', DOWN);
+    attach(h, 'lamp', -DOWN);
+    h.warmth = 5;
+    const r = tell(h, 'we ate outside tonight', T0 + STILL_MS + 1);
+    expect(r.met).toBe('stays');
+    expect(h.warmth).toBeCloseTo(5 + 3 + STAY_WARMTH);
+  });
+
+  it('flinches under a vain part, and wanders when it has nothing to rest on', () => {
+    const h = creature();
+    expect(tell(h, 'we ate outside tonight', T0 + STILL_MS + 1).met).toBe('wanders');
+    attach(h, 'crown', -DOWN);
+    h.warmth = 2;
+    const r = tell(h, 'we ate outside again', T0 + STILL_MS + stillFor(h) + 2);
+    expect(r.met).toBe('flinches');
+    // received, but no warmth for staying
+    expect(h.warmth).toBeCloseTo(Math.min(2 + 3, warmthCap(h)));
+  });
+});
+
+describe('it wants you, and lets you leave', () => {
+  it('wants you after three stories, never as a factory', () => {
+    const h = creature();
+    expect(wants(h)).toBe(false);
+    h.loaf = 3;
+    expect(wants(h)).toBe(true);
+    attach(h, 'table', DOWN);
+    attach(h, 'door', 0);
+    attach(h, 'lock', 0);
+    expect(wants(h)).toBe(false);
+    expect(freedom(h).free).toBe(false);
+    breakLock(h);
+    expect(wants(h)).toBe(true);
+    expect(freedom(h).free).toBe(true);
+  });
+});
+
+describe('the Presence is climate, not a voice', () => {
+  it('reads the weather off what was built', () => {
+    const h = creature();
+    h.warmth = 0;
+    expect(climate(h, T0 + 60_000)).toBe('dark');
+    h.warmth = 6;
+    expect(climate(h, T0)).toBe('afterglow');
+    const later = T0 + 60_000;
+    attach(h, 'crown', -DOWN);
+    expect(climate(h, later)).toBe('wind');
+    h.parts = [];
+    attach(h, 'table', DOWN);
+    attach(h, 'door', 0);
+    attach(h, 'lock', 0);
+    expect(climate(h, later)).toBe('smog');
+    breakLock(h);
+    h.stage = 3;
+    h.house.cells[0].hour = 'grief';
+    expect(climate(h, later)).toBe('rain');
+    h.house.cells[0].hour = null;
+    h.warmth = 0.9 * 30;
+    expect(['warm', 'still']).toContain(climate(h, later));
+  });
+
+  it('marks the Third Cummin when the house crosses into the city', () => {
+    const h = creature();
+    h.stage = 3;
+    attach(h, 'table', DOWN);
+    attach(h, 'door', 0);
+    h.loaf = 5;
+    const lay: (Hour | null)[] = ['leaving', 'fight', 'meal', 'need', 'fun', null, 'grief', null, null, null, 'unknowing', null];
+    lay.forEach((hr, i) => (h.house.cells[i].hour = hr));
+    h.house.nextHour = 1e9;
+    tick(h, 0.01);
+    expect(h.stage).toBe(4);
+    expect(h.log.join(' ')).toMatch(/Third Cummin/);
   });
 });
