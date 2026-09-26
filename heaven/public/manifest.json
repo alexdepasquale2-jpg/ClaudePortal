@@ -1,0 +1,11 @@
+{
+  "name": "Heaven",
+  "short_name": "Heaven",
+  "description": "The Third Cummin.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0b1e",
+  "theme_color": "#0a0b1e",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

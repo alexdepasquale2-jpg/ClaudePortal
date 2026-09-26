@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual" />
+    <meta name="theme-color" content="#0a0b1e" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Heaven" />
+    <meta name="description" content="Heaven. The Third Cummin." />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <title>Heaven</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main id="stage">
+      <canvas id="glass" role="img" aria-label="A soft oval of lamp light."></canvas>
+
+      <div id="title" class="serif">
+        <h1>Heaven</h1>
+        <p>The Third Cummin</p>
+      </div>
+
+      <div id="namebox" class="layer">
+        <input id="name" class="sans" type="text" autocomplete="off" autocapitalize="words" spellcheck="false"
+          enterkeyhint="done" maxlength="40" aria-label="A name, or none." placeholder="A name, or none." />
+      </div>
+
+      <section id="write" class="layer">
+        <p id="speech" class="serif" aria-live="polite"></p>
+        <div id="cont" class="sans" hidden><p id="cont-text"></p></div>
+        <textarea id="story" class="sans" rows="4" aria-label="Your story"
+          placeholder="Tell it the way it sits in you. Wrong is allowed."></textarea>
+        <div id="slot" aria-hidden="true"></div>
+      </section>
+
+      <section id="reply" class="layer" aria-live="polite">
+        <p id="r-quote" class="sans"></p>
+        <p id="r-line" class="serif"></p>
+        <p id="r-feeling" class="serif"></p>
+        <p id="r-verse" class="serif"></p>
+        <p id="r-question" class="serif"></p>
+        <div id="r-controls" hidden>
+          <button id="r-speak" class="serif word">Speak</button>
+          <button id="r-stay" class="serif word">Stay</button>
+        </div>
+      </section>
+
+      <section id="seedview" class="layer" aria-live="polite">
+        <p id="seed-text" class="sans"></p>
+        <p id="seed-hour" class="sans"></p>
+      </section>
+
+      <p id="farewell" class="serif" aria-live="polite"></p>
+
+      <p id="parts-sr" class="sr" aria-live="polite"></p>
+
+      <button id="nottonight" class="serif word">Not tonight</button>
+
+      <section id="settings" role="dialog" aria-label="Settings">
+        <ul id="settings-list" class="serif">
+          <li><button data-act="larger">Text larger</button> <button data-act="smaller">Text smaller</button></li>
+          <li><button data-act="motion"></button></li>
+          <li><button data-act="sound"></button></li>
+          <li><button data-act="forget-name">Forget my name</button></li>
+          <li><button data-act="delete">Delete every story</button></li>
+        </ul>
+        <div id="confirm" class="serif" hidden>
+          <p>This forgets the seeds. The light remains.</p>
+          <button data-act="forget">Forget them</button>
+          <button data-act="keep">Keep them</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

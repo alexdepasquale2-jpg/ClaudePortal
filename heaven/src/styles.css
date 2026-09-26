@@ -1,0 +1,354 @@
+:root {
+  --night: #0a0b1e;
+  --indigo: #161638;
+  --gold: #d9a441;
+  --linen: #ece1c8;
+  --white: #fff6e2;
+  --scale: 1;
+  --kb: 0px;
+  --vvh: 100vh;
+  --slot: 36vh;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: dark;
+}
+
+/* Follow the system text size, then their own larger or smaller. */
+html {
+  font: -apple-system-body;
+  background: var(--night);
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--linen);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  font-family: var(--serif);
+  font-size: calc(1rem * var(--scale));
+  overscroll-behavior: none;
+}
+
+.serif {
+  font-family: var(--serif);
+}
+.sans {
+  font-family: var(--sans);
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+[hidden] {
+  display: none !important;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#glass {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* Layers fade; none of them slide. */
+.layer,
+#title,
+#farewell,
+#nottonight,
+#settings {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+}
+.on {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: opacity 0.9s ease, visibility 0s;
+}
+.reduced .layer,
+.reduced #title,
+.reduced #farewell {
+  transition-duration: 0.4s;
+}
+
+#title {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 55%;
+  text-align: center;
+  pointer-events: none !important;
+  transition-duration: 1.4s;
+}
+#title h1 {
+  margin: 0;
+  font-weight: 400;
+  font-size: 1.35em;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+#title p {
+  margin: 0.35em 0 0;
+  font-size: 0.8em;
+  letter-spacing: 0.06em;
+  color: var(--linen);
+  opacity: 0.72;
+}
+
+#namebox {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 56%;
+  display: flex;
+  justify-content: center;
+}
+#name {
+  width: min(18em, 100%);
+  box-sizing: border-box;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(236, 225, 200, 0.28);
+  color: var(--white);
+  font-size: 1em;
+  text-align: center;
+  padding: 0.5em 0.25em;
+  outline: none;
+  border-radius: 0;
+  user-select: text;
+  -webkit-user-select: text;
+}
+#name::placeholder,
+#story::placeholder {
+  color: rgba(236, 225, 200, 0.45);
+}
+
+#write {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--kb);
+  max-height: calc(var(--vvh) - 12px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+#speech {
+  margin: 0 0 1em;
+  min-height: 2.8em;
+  max-width: 22em;
+  text-align: center;
+  line-height: 1.45;
+  color: var(--linen);
+  transition: opacity 0.9s ease;
+}
+#speech.fade {
+  opacity: 0;
+}
+#cont {
+  width: min(22em, 100%);
+  margin: 0 0 0.8em;
+  touch-action: none;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+#cont.away {
+  opacity: 0;
+  transform: translateX(40%);
+}
+#cont p {
+  margin: 0;
+  color: var(--white);
+  opacity: 0.45;
+  line-height: 1.4;
+  font-size: 0.95em;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+#story {
+  width: min(22em, 100%);
+  box-sizing: border-box;
+  min-height: 5.5em;
+  max-height: 30vh;
+  resize: none;
+  background: rgba(22, 22, 56, 0.55);
+  border: 1px solid rgba(236, 225, 200, 0.14);
+  border-radius: 2px;
+  color: var(--white);
+  font-size: 1em;
+  line-height: 1.45;
+  padding: 0.7em 0.8em;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: pan-y;
+  transition: opacity 0.9s ease;
+}
+#story:focus {
+  border-color: rgba(217, 164, 65, 0.4);
+}
+#slot {
+  flex: none;
+  width: 100%;
+  height: var(--slot);
+  transition: height 0.6s ease;
+}
+
+#reply,
+#seedview {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 33%;
+  height: 34%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 0.55em;
+}
+#reply p,
+#seedview p {
+  margin: 0;
+  max-width: 22em;
+}
+#r-quote {
+  color: var(--white);
+  font-size: 1em;
+  line-height: 1.4;
+}
+#r-line {
+  color: var(--linen);
+  line-height: 1.45;
+}
+#r-feeling {
+  color: var(--linen);
+  font-style: italic;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+#r-verse {
+  color: var(--gold);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+#r-verse span {
+  display: block;
+  font-size: 0.85em;
+  opacity: 0.75;
+  margin-top: 0.15em;
+}
+#r-question {
+  color: var(--linen);
+}
+#r-controls {
+  display: flex;
+  gap: 2.2em;
+  margin-top: 0.2em;
+}
+#seed-text {
+  color: var(--white);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#seed-hour {
+  color: var(--linen);
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+
+button.word,
+#settings button {
+  background: none;
+  border: 0;
+  padding: 0.6em 0.4em;
+  min-height: 44px;
+  min-width: 44px;
+  color: var(--linen);
+  font: inherit;
+  font-family: var(--serif);
+  cursor: pointer;
+}
+button.word:focus-visible,
+#settings button:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
+}
+
+#nottonight {
+  position: absolute;
+  left: 12px;
+  bottom: calc(8px + var(--safe-b) + var(--kb));
+  font-size: 0.85em;
+  opacity: 0;
+  z-index: 3;
+}
+#nottonight.on {
+  opacity: 0.7 !important;
+}
+
+#farewell {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 58%;
+  margin: 0;
+  text-align: center;
+  color: var(--linen);
+  pointer-events: none !important;
+}
+
+#settings {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 11, 30, 0.9);
+  z-index: 5;
+  transition-duration: 0.5s;
+}
+#settings-list,
+#confirm {
+  list-style: none;
+  margin: 0;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 0;
+  color: var(--linen);
+}
+#settings-list li {
+  border-bottom: 1px solid rgba(236, 225, 200, 0.1);
+}
+#settings button {
+  text-align: left;
+}
+#confirm p {
+  margin: 0.6em 0.4em;
+  line-height: 1.45;
+}
