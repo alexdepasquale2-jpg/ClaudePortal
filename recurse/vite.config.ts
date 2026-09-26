@@ -17,6 +17,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         skyneet: 'skyneet.html',
+        heaven: 'heaven.html',
       },
       output: {
         manualChunks: undefined,

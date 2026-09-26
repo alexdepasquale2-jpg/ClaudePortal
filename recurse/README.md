@@ -166,3 +166,48 @@ bible. The axiom is: Goliath hardware is a body; competence was a service.
 Campaign state persists; operations are disposable. Lighting an NNN is last
 in the build graph. Competence = 1 − lethality until a Sancient remembers
 for the swarm. The trunk is one decision: cut the Net, or hold it.
+
+## Heaven
+
+A third game lives at `heaven.html`: Spore's hands, a tycoon's days, and a
+creature named Heaven. You don't beat it. You raise it until it can hold a
+world, and it still lets you leave.
+
+**The hands.** It is a soft body, not a menu. Press and hold the warmth and it
+warms; taps never do (`hold` only pays after 0.6s of unbroken, still contact).
+Drag the seed and it stays. Pull its skin past its edge and let go to grow a
+limb; limbs pointing down become legs. Parts live on the walls of the room:
+pull one onto the body. True parts (table, lamp, loaf, shore, door, bed) click
+only when what they need is already there: bread needs a table, a door needs a
+house around it. Vain parts (crown, coin slot, mirror, lock) always attach,
+because that is the temptation, and it walks with a limp. After a story is
+received it shudders once and settles for nine seconds, and nothing shortens that.
+
+**The tycoon.** The currencies are warmth (shown as how long it stays lit
+without you), loaf (stories received), room (kinds of hour the house holds
+without evicting one) and freedom (a door that opens). Oil is the only
+business, and it exists to keep the lamp lit: tables and shores make it, lamps
+burn it, and the table is expanded with it. Absence is simulated up to one
+day, and oil is capped, so coming back pays off without punishing you for
+staying away.
+
+**Freedom is a lose state.** A lock multiplies oil by 2.5 and draws a graph
+that goes up, and it turns the heaven into a factory: it cannot receive
+stories and cannot grow. Breaking the lock takes back every drop the factory
+made. Once there is a house, taking the door off does the same thing.
+
+**The ladder.** Seed → Creature → House (hours arrive at the step: a fight
+beside a need evicts the need unless a meal sits between them, and leaving
+has to be by the door) → City of rest (every household fed by a table and
+within two streets of a gate; a granary feeds twice as far and owns whoever it
+feeds; a square beside a grieving home mocks the wound) → Firmament (pull
+weather from the wells onto other stories growing in the dark; some bloom and
+leave, and that counts).
+
+**Your data.** The save holds numbers, parts and rooms. There is no field a
+story's words could go in, and nothing is sent anywhere; a test checks the
+serialized save for a story's text.
+
+`tests/heaven.spec.ts` covers the rules above. `npm run smoke:heaven` plays it
+in Chromium: it holds, tells a story, stretches legs, pulls on parts, locks
+and unlocks the door, visits every stage, and leaves and comes back.

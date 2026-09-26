@@ -177,8 +177,10 @@ class Game {
     this.els.resetBtn = btn('Reset', 'R', () => this.openPrestige());
     this.els.resetBtn.classList.add('btn-reset');
     const sky = h('a', { class: 'btn btn-top', text: 'SkyNeet', href: './skyneet.html', title: 'SkyNeet Survivors' });
+    const heaven = h('a', { class: 'btn btn-top', text: 'Heaven', href: './heaven.html', title: 'Heaven: raise a creature' });
     actions.append(
       sky,
+      heaven,
       btn('Codex', 'X', () => openCodex(deps)),
       btn('Feed', 'F', () => openFeed(deps)),
       btn('Awards', 'A', () => openAchievements(deps)),
