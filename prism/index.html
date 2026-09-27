@@ -7,91 +7,168 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Prism</title>
 <style>
-  :root { --bg:#07060f; --fg:#f4f1ff; --dim:#9a93c0; }
+  :root { color-scheme:dark; --bg:#07060f; --fg:#f4f1ff; --dim:#9a93c0; --card:#141127; --line:#2a2548; --gold:#ffd66b; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
     font-family:system-ui,-apple-system,"Segoe UI",sans-serif; overflow:hidden;
     overscroll-behavior:none; touch-action:none; user-select:none; -webkit-user-select:none; }
   #app { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
     padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom); }
-  header { width:100%; max-width:560px; display:flex; justify-content:space-between; align-items:flex-end; padding:14px 4px 8px; }
+  header { width:100%; max-width:560px; display:flex; justify-content:space-between; align-items:flex-end; padding:12px 4px 6px; }
   .stat { display:flex; flex-direction:column; }
-  .stat b { font-size:26px; font-variant-numeric:tabular-nums; letter-spacing:.5px; }
+  .stat b { font-size:24px; font-variant-numeric:tabular-nums; letter-spacing:.5px; }
   .stat span { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:2px; }
+  .stat small { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
   .right { text-align:right; align-items:flex-end; }
-  #bar { width:100%; max-width:560px; height:6px; border-radius:3px; background:#1a1730; overflow:hidden; margin-bottom:10px; }
+  #bar { width:100%; max-width:560px; height:6px; border-radius:3px; background:#1a1730; overflow:hidden; }
   #fill { height:100%; width:0; background:linear-gradient(90deg,#ff3b6b,#ffb020,#3dff8a,#2fb8ff,#b04dff); transition:width .3s; }
+  #mod { width:100%; max-width:560px; min-height:18px; font-size:12px; color:var(--gold); letter-spacing:1px; text-transform:uppercase; padding:6px 4px 0; }
+  #build { width:100%; max-width:560px; display:flex; gap:6px; padding:6px 4px 8px; min-height:34px; overflow-x:auto; scrollbar-width:none; touch-action:pan-x; }
+  #build::-webkit-scrollbar { display:none; }
+  #summary .chip, #build .chip { white-space:nowrap; flex:none; }
+  #summary { flex-wrap:wrap; }
+  .chip { display:flex; align-items:center; gap:5px; font-size:11px; padding:4px 8px; border-radius:999px; background:var(--card); border:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .chip i { width:9px; height:9px; border-radius:50%; display:block; }
+  .chip.evo { border-color:var(--gold); color:var(--gold); box-shadow:0 0 10px rgba(255,214,107,.35); }
+  .chip.ult { border-color:#fff; background:linear-gradient(90deg,#ff3b6b44,#2fb8ff44,#b04dff44); }
   #wrap { flex:1; width:100%; display:flex; align-items:center; justify-content:center; min-height:0; }
   canvas { display:block; touch-action:none; }
   #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:rgba(7,6,15,.82); backdrop-filter:blur(6px); gap:14px; text-align:center; padding:24px; }
+    background:rgba(7,6,15,.86); backdrop-filter:blur(6px); gap:14px; text-align:center; padding:24px 16px; overflow-y:auto; }
   #overlay.hide { display:none; }
-  #overlay h1 { margin:0; font-size:56px; letter-spacing:10px; font-weight:800;
+  #overlay h1 { margin:0; font-size:52px; letter-spacing:10px; font-weight:800;
     background:linear-gradient(90deg,#ff3b6b,#ffb020,#3dff8a,#2fb8ff,#b04dff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  #overlay p { margin:0; color:var(--dim); max-width:320px; line-height:1.5; }
-  button { font:inherit; font-weight:700; font-size:18px; color:var(--bg); background:var(--fg); border:0;
+  #overlay p { margin:0; color:var(--dim); max-width:340px; line-height:1.5; }
+  #cards { display:flex; flex-direction:column; gap:10px; width:100%; max-width:380px; }
+  .card { text-align:left; display:grid; grid-template-columns:40px 1fr; gap:4px 12px; align-items:center; padding:12px 14px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; color:var(--fg); font-size:14px; font-weight:400; cursor:pointer; min-height:0; }
+  .card:focus-visible, button:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+  .card .ic { grid-row:span 2; width:40px; height:40px; border-radius:10px; display:grid; place-items:center; font-weight:800; font-size:16px; color:#07060f; }
+  .card b { font-size:15px; }
+  .card b em { font-style:normal; color:var(--dim); font-weight:500; font-size:12px; margin-left:6px; }
+  .card span { color:var(--dim); font-size:13px; line-height:1.35; }
+  .card.evo { border-color:var(--gold); box-shadow:0 0 18px rgba(255,214,107,.3); }
+  .card.evo b { color:var(--gold); }
+  .tag { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); }
+  button.main { font:inherit; font-weight:700; font-size:18px; color:var(--bg); background:var(--fg); border:0;
     border-radius:999px; padding:14px 38px; min-height:48px; cursor:pointer; }
+  #summary { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:360px; }
+  @media (prefers-reduced-motion: reduce) { #fill { transition:none; } }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="stat"><span>Level</span><b id="level">1</b></div>
-    <div class="stat" style="align-items:center"><span>Score</span><b id="score">0</b></div>
+    <div class="stat"><span>Stage</span><b id="stage">1/12</b></div>
+    <div class="stat" style="align-items:center"><span>Stage score</span><b id="score">0</b><small id="target">/ 0</small></div>
     <div class="stat right"><span>Moves</span><b id="moves">0</b></div>
   </header>
   <div id="bar"><div id="fill"></div></div>
+  <div id="mod"></div>
+  <div id="build"></div>
   <div id="wrap"><canvas id="c"></canvas></div>
 </div>
 <div id="overlay">
-  <h1>PRISM</h1>
-  <p id="msg">Swipe a gem to swap. Match 3+ colors. Match 4 for a line blast, 5 for a prism that wipes a whole color.</p>
-  <button id="go">Play</button>
+  <h1 id="otitle">PRISM</h1>
+  <p id="msg">A 12-stage gauntlet. Hit each stage's score before your moves run out, or the run ends. After every stage, draft a trait or catalyst. Max a trait, own its catalyst, and evolve it.</p>
+  <div id="summary"></div>
+  <div id="cards"></div>
+  <button class="main" id="go">Begin run</button>
 </div>
 <script>
 "use strict";
-// ---------- config ----------
-const N = 8, COLORS = [
-  [255,59,107],  // red
-  [255,176,32],  // amber
-  [61,255,138],  // green
-  [47,184,255],  // blue
-  [176,77,255],  // violet
-  [255,240,90],  // yellow (unlocked at level 3)
+// ================= config =================
+const N = 8, STAGES = 12;
+const COLORS = [
+  [255,59,107],   // 0 red
+  [255,176,32],   // 1 amber
+  [61,255,138],   // 2 green
+  [47,184,255],   // 3 blue
+  [176,77,255],   // 4 violet
+  [226,230,255],  // 5 pearl (boss color, no trait)
+  [110,104,132],  // 6 stone
 ];
-const NONE = 0, LINE_H = 1, LINE_V = 2, PRISM = 3;
+const STONE_C = 6;
+const NONE = 0, LINE_H = 1, LINE_V = 2, PRISM = 3, STONE = 4;
 const SWAP_T = 0.14, FALL_G = 60, CLEAR_T = 0.18;
+const hex = i => '#' + COLORS[i].map(v => v.toString(16).padStart(2, '0')).join('');
 
+// ================= build data =================
+// Traits are the "weapons": color-bound, level 1-5, evolve with a paired catalyst.
+const TRAITS = {
+  ember:  { name: 'Ember',   color: 0, cat: 'fuse',      evo: 'Supernova',   desc: n => `Red matches scorch ${2 * n} nearby gems.`,
+            evoDesc: 'Red matches also blow a 3×3 crater at their center.' },
+  gilded: { name: 'Gilded',  color: 1, cat: 'tithe',     evo: 'Midas',       desc: n => `Each amber gem cleared adds ${15 * n} × combo points.`,
+            evoDesc: 'Any cascade step with an amber match scores double.' },
+  verdant:{ name: 'Verdant', color: 2, cat: 'hourglass', evo: 'Evergreen',   desc: n => `Every ${Math.max(3, 9 - n)} green gems cleared gives +1 move.`,
+            evoDesc: 'Every green match also gives +1 move.' },
+  tide:   { name: 'Tide',    color: 3, cat: 'magnet',    evo: 'Maelstrom',   desc: n => `Blue matches fire ${n} lightning strike${n > 1 ? 's' : ''}.`,
+            evoDesc: 'Blue matches also charge a random gem into a line blaster.' },
+  hollow: { name: 'Hollow',  color: 4, cat: 'shard',     evo: 'Singularity', desc: n => `Violet matches turn ${n} gem${n > 1 ? 's' : ''} violet.`,
+            evoDesc: 'Violet matches have a 35% chance to forge a Prism.' },
+};
+// Catalysts are the "passives".
+const CATS = {
+  fuse:      { name: 'Fuse',      max: 3, desc: l => `3-matches have a ${12 * l}% chance to make a line blaster.` },
+  tithe:     { name: 'Tithe',     max: 3, desc: l => `+${15 * l}% to all score.` },
+  hourglass: { name: 'Hourglass', max: 3, desc: l => `+${2 * l} moves every stage.` },
+  magnet:    { name: 'Magnet',    max: 3, desc: l => `Cascades of 2+ have a ${15 * l}% chance to spawn a line blaster.` },
+  shard:     { name: 'Shard',     max: 3, desc: l => `Combo multiplier +${50 * l}%.` },
+  lens:      { name: 'Lens',      max: 2, desc: l => `Every trait acts ${l} level${l > 1 ? 's' : ''} stronger.` },
+};
+// Ultimates: two evolved traits fuse into a run-defining synergy.
+const ULTS = {
+  stormfire: { name: 'Stormfire',     needs: ['ember', 'tide'],    desc: 'Every lightning strike detonates a 3×3 blast.' },
+  goldenage: { name: 'Golden Age',    needs: ['gilded', 'verdant'], desc: 'Every move gained also scores 300 × stage.' },
+  horizon:   { name: 'Event Horizon', needs: ['hollow', 'ember'],  desc: 'Prisms wipe two colors at once.' },
+  tempest:   { name: 'Tempest',       needs: ['tide', 'verdant'],  desc: 'Every line blaster that fires gives +1 move (max 2 per move).' },
+  crown:     { name: 'Chroma Crown',  needs: ['gilded', 'hollow'], desc: 'Violet gems count as amber for Gilded and Midas.' },
+};
+const MAX_TRAITS = 4, MAX_CATS = 4;
+
+function stageInfo(s) {
+  const info = { target: Math.round((800 * Math.pow(1.27, s - 1) + s * 300) / 10) * 10, moves: 20, colors: 5, stones: 0, name: '', boss: false };
+  if (s >= 6) info.stones = 3;
+  if (s === 4)  Object.assign(info, { boss: true, name: 'Boss · Stonewall — 10 stones', stones: 10 });
+  if (s === 8)  Object.assign(info, { boss: true, name: 'Boss · Eclipse — a sixth color and 6 stones', colors: 6, stones: 6 });
+  if (s === 12) Object.assign(info, { boss: true, name: 'Final boss · Prism Heart — six colors, 12 stones, −3 moves', colors: 6, stones: 12, moves: 17 });
+  return info;
+}
+
+// ================= canvas =================
 const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
 const $ = id => document.getElementById(id);
 let DPR = 1, size = 0, cell = 0;
 
-// ---------- state ----------
-let grid = [];            // grid[r][c] = gem | null
-let level = 1, score = 0, goal = 0, moves = 0, nColors = 5;
-let busy = false, combo = 0, shake = 0, flash = 0, time = 0, idle = 0, hint = null;
-let sel = null;           // selected gem {r,c}
+// ================= state =================
+let grid = [];
+let run = null;            // { stage, total, traits:{id:{lvl,evo}}, cats:{id:lvl}, ults:Set, greenBank }
+let stageScore = 0, target = 0, moves = 0, nColors = 5;
+let busy = false, combo = 0, shake = 0, flash = 0, time = 0, idle = 0, hint = null, playing = false;
+let sel = null, blastMoves = 0;
 const parts = [], rings = [], popups = [];
 
-function gem(color, special = NONE) {
-  return { color, special, x: 0, y: 0, vy: 0, scale: 1, dying: 0, alpha: 1, spawn: 0 };
-}
+function gem(color, special = NONE) { return { color, special, x: 0, y: 0, vy: 0, scale: 1, alpha: 1, spawn: 0 }; }
 const rnd = n => (Math.random() * n) | 0;
+const tr = id => run && run.traits[id];
+const eff = id => { const t = tr(id); return t ? t.lvl + (run.cats.lens || 0) : 0; };
+const evo = id => !!(tr(id) && tr(id).evo);
+const cat = id => (run && run.cats[id]) || 0;
+const ult = id => !!(run && run.ults.has(id));
 
-// ---------- layout ----------
+// ================= layout =================
 function resize() {
   const w = $('wrap');
   DPR = Math.min(window.devicePixelRatio || 1, 2.5);
-  size = Math.floor(Math.min(w.clientWidth, w.clientHeight, 560));
+  size = Math.max(200, Math.floor(Math.min(w.clientWidth, w.clientHeight, 560)));
   cell = size / N;
   cvs.style.width = cvs.style.height = size + 'px';
   cvs.width = cvs.height = Math.floor(size * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   sprites.clear();
 }
 window.addEventListener('resize', resize);
 
-// ---------- pre-rendered gem sprites (fast drawing, rich look) ----------
+// ================= sprites =================
 const sprites = new Map();
 function sprite(color, special) {
   const key = color + ':' + special;
@@ -101,27 +178,29 @@ function sprite(color, special) {
   s = document.createElement('canvas'); s.width = s.height = px;
   const g = s.getContext('2d'), cx = px / 2, R = cell * DPR * 0.4;
   const [r, gg, b] = special === PRISM ? [255, 255, 255] : COLORS[color];
-  // outer glow
-  const glow = g.createRadialGradient(cx, cx, R * 0.4, cx, cx, px / 2);
-  glow.addColorStop(0, `rgba(${r},${gg},${b},.55)`); glow.addColorStop(1, `rgba(${r},${gg},${b},0)`);
-  g.fillStyle = glow; g.fillRect(0, 0, px, px);
-  // body: faceted gem shape per color for colorblind-friendliness
+  if (special !== STONE) {
+    const glow = g.createRadialGradient(cx, cx, R * 0.4, cx, cx, px / 2);
+    glow.addColorStop(0, `rgba(${r},${gg},${b},.55)`); glow.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+    g.fillStyle = glow; g.fillRect(0, 0, px, px);
+  }
   g.save(); g.translate(cx, cx);
-  shapePath(g, special === PRISM ? -1 : color, R);
+  shapePath(g, special === PRISM ? -1 : special === STONE ? -2 : color, R);
   const body = g.createRadialGradient(-R * .35, -R * .4, R * .05, 0, 0, R * 1.1);
-  if (special === PRISM) {
-    body.addColorStop(0, '#fff'); body.addColorStop(.5, '#d9c9ff'); body.addColorStop(1, '#5a3aa8');
-  } else {
+  if (special === PRISM) { body.addColorStop(0, '#fff'); body.addColorStop(.5, '#d9c9ff'); body.addColorStop(1, '#5a3aa8'); }
+  else {
     body.addColorStop(0, `rgb(${Math.min(255, r + 120)},${Math.min(255, gg + 120)},${Math.min(255, b + 120)})`);
     body.addColorStop(.55, `rgb(${r},${gg},${b})`);
     body.addColorStop(1, `rgb(${r * .35 | 0},${gg * .35 | 0},${b * .35 | 0})`);
   }
   g.fillStyle = body; g.fill();
-  g.lineWidth = R * 0.07; g.strokeStyle = 'rgba(255,255,255,.55)'; g.stroke();
-  // specular highlight
-  g.beginPath(); g.ellipse(-R * .3, -R * .38, R * .32, R * .16, -0.6, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(255,255,255,.7)'; g.fill();
-  // special markings
+  g.lineWidth = R * 0.07; g.strokeStyle = special === STONE ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.55)'; g.stroke();
+  if (special === STONE) {
+    g.strokeStyle = 'rgba(20,16,30,.8)'; g.lineWidth = R * .08;
+    g.beginPath(); g.moveTo(-R * .5, -R * .2); g.lineTo(-R * .1, R * .05); g.lineTo(R * .15, -R * .35); g.moveTo(-R * .1, R * .05); g.lineTo(R * .05, R * .5); g.stroke();
+  } else {
+    g.beginPath(); g.ellipse(-R * .3, -R * .38, R * .32, R * .16, -0.6, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.fill();
+  }
   if (special === LINE_H || special === LINE_V) {
     g.rotate(special === LINE_V ? Math.PI / 2 : 0);
     g.fillStyle = 'rgba(255,255,255,.95)';
@@ -141,18 +220,19 @@ function shapePath(g, color, R) {
   g.beginPath();
   const poly = (n, rot, k = 1) => { for (let i = 0; i < n; i++) { const a = rot + i * Math.PI * 2 / n; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * k, Math.sin(a) * R * k); } g.closePath(); };
   switch (color) {
-    case 0: poly(4, Math.PI / 4, 1.12); break;           // square
-    case 1: poly(6, 0); break;                           // hexagon
-    case 2: poly(3, -Math.PI / 2, 1.15); break;          // triangle
-    case 3: poly(4, 0, 1.1); break;                      // diamond
-    case 4: { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? .55 : 1.05; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * k, Math.sin(a) * R * k); } g.closePath(); break; } // star
-    case 5: poly(8, Math.PI / 8); break;                 // octagon
-    default: g.arc(0, 0, R, 0, Math.PI * 2);             // prism: orb
+    case 0: poly(4, Math.PI / 4, 1.12); break;
+    case 1: poly(6, 0); break;
+    case 2: poly(3, -Math.PI / 2, 1.15); break;
+    case 3: poly(4, 0, 1.1); break;
+    case 4: { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? .55 : 1.05; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * k, Math.sin(a) * R * k); } g.closePath(); break; }
+    case 5: poly(8, Math.PI / 8); break;
+    case -2: { const pts = [1, .85, 1, .9, .95, .8, 1, .9]; pts.forEach((k, i) => { const a = i * Math.PI / 4 + .2; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * k, Math.sin(a) * R * k); }); g.closePath(); break; }
+    default: g.arc(0, 0, R, 0, Math.PI * 2);
   }
 }
 
-// ---------- board logic ----------
-function newBoard() {
+// ================= board logic =================
+function newBoard(stones) {
   do {
     grid = [];
     for (let r = 0; r < N; r++) {
@@ -165,22 +245,28 @@ function newBoard() {
         const g = gem(col); g.x = c; g.y = r - N - 1 - rnd(3) * .3; grid[r].push(g);
       }
     }
+    for (let i = 0; i < stones; i++) {
+      const r = 2 + rnd(N - 2), c = rnd(N), g = gem(STONE_C, STONE);
+      g.x = c; g.y = grid[r][c].y; grid[r][c] = g;
+    }
   } while (!findMove());
 }
 const at = (r, c) => (r >= 0 && r < N && c >= 0 && c < N) ? grid[r][c] : null;
-const same = (a, b) => a && b && a.special !== PRISM && b.special !== PRISM && a.color === b.color;
+const matchable = g => g && g.special !== PRISM && g.special !== STONE;
+const same = (a, b) => matchable(a) && matchable(b) && a.color === b.color;
+const key = (r, c) => r * N + c;
+const rc = k => [(k / N) | 0, k % N];
 
-// Returns runs: [{cells:[[r,c]...], dir:'h'|'v'}]
 function findRuns() {
   const runs = [];
   for (let r = 0; r < N; r++) for (let c = 0; c < N;) {
     let e = c + 1; while (e < N && same(grid[r][c], grid[r][e])) e++;
-    if (e - c >= 3) runs.push({ dir: 'h', cells: Array.from({ length: e - c }, (_, i) => [r, c + i]) });
+    if (e - c >= 3) runs.push({ dir: 'h', color: grid[r][c].color, cells: Array.from({ length: e - c }, (_, i) => [r, c + i]) });
     c = e;
   }
   for (let c = 0; c < N; c++) for (let r = 0; r < N;) {
     let e = r + 1; while (e < N && same(grid[r][c], grid[e][c])) e++;
-    if (e - r >= 3) runs.push({ dir: 'v', cells: Array.from({ length: e - r }, (_, i) => [r + i, c]) });
+    if (e - r >= 3) runs.push({ dir: 'v', color: grid[r][c].color, cells: Array.from({ length: e - r }, (_, i) => [r + i, c]) });
     r = e;
   }
   return runs;
@@ -188,18 +274,25 @@ function findRuns() {
 function swapCells(a, b) { const t = grid[a.r][a.c]; grid[a.r][a.c] = grid[b.r][b.c]; grid[b.r][b.c] = t; }
 function findMove() {
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-    if (grid[r][c].special === PRISM) return { a: { r, c }, b: { r, c: c ? c - 1 : c + 1 } };
+    if (grid[r][c].special === STONE) continue;
     for (const [dr, dc] of [[0, 1], [1, 0]]) {
-      const a = { r, c }, b = { r: r + dr, c: c + dc };
-      if (!at(b.r, b.c)) continue;
+      const a = { r, c }, b = { r: r + dr, c: c + dc }, gb = at(b.r, b.c);
+      if (!gb || gb.special === STONE) continue;
+      if (grid[r][c].special === PRISM || gb.special === PRISM) return { a, b };
       swapCells(a, b); const ok = findRuns().length > 0; swapCells(a, b);
       if (ok) return { a, b };
     }
   }
   return null;
 }
+function randomCells(n, filter) {
+  const pool = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (filter(r, c, grid[r][c])) pool.push([r, c]);
+  for (let i = pool.length - 1; i > 0; i--) { const j = rnd(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, n);
+}
 
-// ---------- tweens ----------
+// ================= tweens =================
 const tweens = [];
 function tween(dur, fn) { return new Promise(res => tweens.push({ t: 0, dur, fn, res })); }
 const ease = t => 1 - (1 - t) * (1 - t) * (1 - t);
@@ -212,27 +305,28 @@ async function animSwap(a, b) {
   swapCells(a, b);
 }
 
-// ---------- the move ----------
+// ================= the move =================
 async function trySwap(a, b) {
-  if (busy || !at(b.r, b.c)) return;
-  busy = true; sel = null; hint = null; idle = 0;
-  const ga = grid[a.r][a.c], gb = grid[b.r][b.c];
+  const ga = at(a.r, a.c), gb = at(b.r, b.c);
+  if (busy || !ga || !gb) return;
+  if (ga.special === STONE || gb.special === STONE) { buzz(8); sel = null; return; }
+  busy = true; sel = null; hint = null; idle = 0; blastMoves = 0;
   await animSwap(a, b);
   let forced = null;
-  if (ga.special === PRISM || gb.special === PRISM) {
-    forced = prismBlast(ga, gb, b, a);
-  } else if (ga.special && gb.special) {
-    forced = new Set([key(b.r, b.c), key(a.r, a.c)]); // both detonate
-  }
-  if (!forced && !findRuns().length) {
-    buzz(8); await animSwap(b, a); busy = false; return;
-  }
+  if (ga.special === PRISM || gb.special === PRISM) forced = prismBlast(ga, gb, b, a);
+  else if (ga.special && gb.special) forced = new Set([key(b.r, b.c), key(a.r, a.c)]);
+  if (!forced && !findRuns().length) { buzz(8); await animSwap(b, a); busy = false; return; }
   moves--; combo = 0;
   await resolve(forced, [b, a]);
   busy = false; updateHud(); checkEnd();
 }
-const key = (r, c) => r * N + c;
 
+function prismColors(exclude) {
+  const cols = [...Array(nColors).keys()].filter(c => c !== exclude);
+  const out = [cols.splice(rnd(cols.length), 1)[0]];
+  if (ult('horizon') && cols.length) out.push(cols.splice(rnd(cols.length), 1)[0]);
+  return out;
+}
 function prismBlast(ga, gb, pa, pb) {
   const set = new Set();
   const prism = ga.special === PRISM ? ga : gb, other = prism === ga ? gb : ga;
@@ -240,11 +334,12 @@ function prismBlast(ga, gb, pa, pb) {
   set.add(key(ppos.r, ppos.c)); prism._fired = true;
   if (other.special === PRISM) { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) set.add(key(r, c)); }
   else {
+    const cols = [other.color, ...(ult('horizon') ? prismColors(other.color).slice(0, 1) : [])];
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const g = grid[r][c];
-      if (g.color === other.color && g.special !== PRISM) {
+      if (cols.includes(g.color) && matchable(g) || g === other) {
         if (other.special === LINE_H || other.special === LINE_V) g.special = rnd(2) ? LINE_H : LINE_V;
-        set.add(key(r, c)); beam(ppos, { r, c }, other.color);
+        set.add(key(r, c)); beam(ppos, { r, c }, g.color);
       }
     }
   }
@@ -252,68 +347,126 @@ function prismBlast(ga, gb, pa, pb) {
   return set;
 }
 
+// Chain-detonate specials inside the clear set.
+function detonate(clear) {
+  const queue = [...clear];
+  while (queue.length) {
+    const k = queue.pop(), [r, c] = rc(k), g = grid[r][c];
+    if (!g || g.special === NONE || g.special === STONE) continue;
+    let hit = [];
+    if (g.special === LINE_H || g.special === LINE_V) {
+      hit = g.special === LINE_H ? [...Array(N)].map((_, i) => key(r, i)) : [...Array(N)].map((_, i) => key(i, c));
+      lineFx(r, c, g.special === LINE_H ? 'h' : 'v', g.color); g.special = NONE;
+      if (ult('tempest') && blastMoves < 2) { blastMoves++; gainMoves(1, c, r); }
+    } else if (g.special === PRISM && !g._fired) {
+      g._fired = true;
+      for (const col of prismColors(-1))
+        for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++)
+          if (grid[rr][cc].color === col && matchable(grid[rr][cc])) { hit.push(key(rr, cc)); beam({ r, c }, { r: rr, c: cc }, col); }
+    }
+    for (const h of hit) if (!clear.has(h)) { clear.add(h); queue.push(h); }
+  }
+}
+function add3x3(clear, r, c) { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (at(r + dr, c + dc)) clear.add(key(r + dr, c + dc)); }
+
 async function resolve(forced, swapped) {
-  let first = true;
-  while (true) {
+  let first = true, steps = 0;
+  while (steps++ < 40) {
     const runs = findRuns();
     const clear = new Set(forced || []); forced = null;
     const creates = [];
-    // detect specials: 5-in-a-row -> prism; L/T -> line; 4 -> line
     const cellRuns = new Map();
     for (const run of runs) for (const [r, c] of run.cells) {
       clear.add(key(r, c));
       const k = key(r, c); cellRuns.set(k, (cellRuns.get(k) || []).concat([run]));
     }
     const used = new Set();
-    for (const run of runs) {
-      if (run.cells.some(([r, c]) => used.has(key(r, c)))) continue;
-      let spot = run.cells[run.cells.length >> 1];
-      if (first && swapped) for (const s of swapped) if (run.cells.some(([r, c]) => r === s.r && c === s.c)) spot = [s.r, s.c];
-      const cross = run.cells.find(([r, c]) => cellRuns.get(key(r, c)).length > 1);
+    for (const rn of runs) {
+      if (rn.cells.some(([r, c]) => used.has(key(r, c)))) continue;
+      let spot = rn.cells[rn.cells.length >> 1];
+      if (first && swapped) for (const s of swapped) if (rn.cells.some(([r, c]) => r === s.r && c === s.c)) spot = [s.r, s.c];
+      const cross = rn.cells.find(([r, c]) => cellRuns.get(key(r, c)).length > 1);
       let sp = NONE;
-      if (run.cells.length >= 5) sp = PRISM;
-      else if (cross) { sp = PRISM - (run.dir === 'h' ? 2 : 1); spot = cross; }
-      else if (run.cells.length === 4) sp = run.dir === 'h' ? LINE_V : LINE_H;
-      if (sp) { creates.push({ r: spot[0], c: spot[1], color: grid[spot[0]][spot[1]].color, sp }); run.cells.forEach(([r, c]) => used.add(key(r, c))); }
+      if (rn.cells.length >= 5) sp = PRISM;
+      else if (cross) { sp = rn.dir === 'h' ? LINE_H : LINE_V; spot = cross; }
+      else if (rn.cells.length === 4) sp = rn.dir === 'h' ? LINE_V : LINE_H;
+      else if (cat('fuse') && Math.random() < .12 * cat('fuse')) sp = rnd(2) ? LINE_H : LINE_V;
+      if (sp) { creates.push({ r: spot[0], c: spot[1], color: grid[spot[0]][spot[1]].color, sp }); rn.cells.forEach(([r, c]) => used.add(key(r, c))); }
     }
     if (!clear.size) break;
     combo++;
-    // chain detonations of specials
-    const queue = [...clear];
-    while (queue.length) {
-      const k = queue.pop(), r = (k / N) | 0, c = k % N, g = grid[r][c];
-      if (!g || g.special === NONE) continue;
-      let hit = [];
-      if (g.special === LINE_H) { hit = [...Array(N)].map((_, i) => key(r, i)); lineFx(r, c, 'h', g.color); }
-      if (g.special === LINE_V) { hit = [...Array(N)].map((_, i) => key(i, c)); lineFx(r, c, 'v', g.color); }
-      if (g.special === PRISM && !g._fired) {
-        g._fired = true; const col = rnd(nColors);
-        for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) if (grid[rr][cc].color === col) { hit.push(key(rr, cc)); beam({ r, c }, { r: rr, c: cc }, col); }
+    detonate(clear);
+
+    // ---- trait strikes (add to the clear set) ----
+    const matched = new Set(runs.map(r => r.color));
+    const runsOf = col => runs.filter(r => r.color === col);
+    if (tr('ember') && matched.has(0)) {
+      for (const rn of runsOf(0)) {
+        const nb = new Set();
+        for (const [r, c] of rn.cells) for (const [dr, dc] of [[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]]) if (at(r + dr, c + dc) && !clear.has(key(r + dr, c + dc))) nb.add(key(r + dr, c + dc));
+        [...nb].sort(() => Math.random() - .5).slice(0, 2 * eff('ember')).forEach(k => { clear.add(k); const [r, c] = rc(k); burst(c, r, 0, 6); });
+        if (evo('ember')) { const [r, c] = rn.cells[rn.cells.length >> 1]; add3x3(clear, r, c); rings.push({ x: c + .5, y: r + .5, t: 0, color: 0, big: true }); shake = Math.max(shake, 10); }
       }
-      g.special = g.special === PRISM ? PRISM : NONE; // prevent re-fire
-      for (const h of hit) if (!clear.has(h)) { clear.add(h); queue.push(h); }
     }
-    // don't remove cells that become specials
+    if (tr('tide') && matched.has(3)) {
+      const src = runsOf(3)[0].cells[1];
+      for (const [r, c] of randomCells(eff('tide'), (r, c) => !clear.has(key(r, c)))) {
+        clear.add(key(r, c)); beam({ r: src[0], c: src[1] }, { r, c }, 3, true);
+        if (ult('stormfire')) { add3x3(clear, r, c); rings.push({ x: c + .5, y: r + .5, t: 0, color: 0, big: true }); }
+      }
+      shake = Math.max(shake, 6);
+    }
+    detonate(clear);
+    // stones crack when a neighbor clears
+    for (const k of [...clear]) { const [r, c] = rc(k); for (const [dr, dc] of [[0,1],[1,0],[0,-1],[-1,0]]) { const g = at(r + dr, c + dc); if (g && g.special === STONE) clear.add(key(r + dr, c + dc)); } }
     for (const cr of creates) clear.delete(key(cr.r, cr.c));
-    // score + effects
-    const pts = clear.size * 10 * combo + creates.length * 50;
-    score += pts;
+
+    // ---- scoring ----
+    let pts = clear.size * 10 * combo * (1 + .5 * cat('shard')) + creates.length * 50;
+    let amber = 0, green = 0;
+    for (const k of clear) { const [r, c] = rc(k), g = grid[r][c]; if (g.color === 1 || (ult('crown') && g.color === 4)) amber++; if (g.color === 2) green++; }
+    if (tr('gilded')) pts += amber * 15 * eff('gilded') * combo;
+    if (evo('gilded') && (matched.has(1) || (ult('crown') && matched.has(4)))) pts *= 2;
+    pts = Math.round(pts * (1 + .15 * cat('tithe')) * (1 + (run.stage - 1) * .06));
+    addScore(pts);
+
     let sx = 0, sy = 0;
-    for (const k of clear) {
-      const r = (k / N) | 0, c = k % N, g = grid[r][c];
-      sx += c; sy += r; burst(c, r, g.special === PRISM ? -1 : g.color, 10 + combo * 3);
-      g.dying = 1e-6;
+    for (const k of clear) { const [r, c] = rc(k), g = grid[r][c]; sx += c; sy += r; burst(c, r, g.special === PRISM ? -1 : g.color, 10 + combo * 3); }
+    popups.push({ x: sx / clear.size + .5, y: sy / clear.size + .5, text: '+' + pts.toLocaleString() + (combo > 1 ? '  x' + combo : ''), t: 0 });
+    if (combo > 1) { shake = Math.max(shake, Math.min(18, 3 + combo * 3)); buzz(10 + combo * 6); } else buzz(6);
+
+    // verdant: bank green gems into moves
+    if (tr('verdant')) {
+      run.greenBank += green;
+      const per = Math.max(3, 9 - eff('verdant'));
+      let gained = 0; while (run.greenBank >= per) { run.greenBank -= per; gained++; }
+      if (evo('verdant')) gained += runsOf(2).length;
+      if (gained) { const [r, c] = rc([...clear][0]); gainMoves(gained, c, r); }
     }
-    popups.push({ x: (sx / clear.size + .5), y: (sy / clear.size + .5), text: '+' + pts + (combo > 1 ? '  x' + combo : ''), t: 0 });
-    if (combo > 1) { shake = Math.min(18, 3 + combo * 3); buzz(10 + combo * 6); } else buzz(6);
     for (const cr of creates) { const g = grid[cr.r][cr.c]; g.special = cr.sp; g.spawn = 1; rings.push({ x: cr.c + .5, y: cr.r + .5, t: 0, color: cr.color }); }
     updateHud();
-    await tween(CLEAR_T, t => { for (const k of clear) { const g = grid[(k / N) | 0][k % N]; g.scale = 1 + t * .35; g.alpha = 1 - t; } });
-    for (const k of clear) grid[(k / N) | 0][k % N] = null;
+    await tween(CLEAR_T, t => { for (const k of clear) { const [r, c] = rc(k), g = grid[r][c]; g.scale = 1 + t * .35; g.alpha = 1 - t; } });
+    for (const k of clear) { const [r, c] = rc(k); grid[r][c] = null; }
     await gravity();
+
+    // ---- post-fall transmutations (feed cascades) ----
+    const plain = (r, c, g) => g.special === NONE;
+    if (tr('hollow') && matched.has(4)) {
+      for (const [r, c] of randomCells(eff('hollow'), (r, c, g) => plain(r, c, g) && g.color !== 4)) { grid[r][c].color = 4; grid[r][c].spawn = 1; rings.push({ x: c + .5, y: r + .5, t: 0, color: 4 }); }
+      if (evo('hollow') && Math.random() < .35) for (const [r, c] of randomCells(1, plain)) { grid[r][c].special = PRISM; grid[r][c].spawn = 1; flash = .5; popups.push({ x: c + .5, y: r + .5, text: 'PRISM', t: 0 }); }
+    }
+    const lines = (evo('tide') && matched.has(3) ? 1 : 0) + (combo >= 2 && Math.random() < .15 * cat('magnet') ? 1 : 0);
+    for (const [r, c] of randomCells(lines, plain)) { grid[r][c].special = rnd(2) ? LINE_H : LINE_V; grid[r][c].spawn = 1; rings.push({ x: c + .5, y: r + .5, t: 0, color: 3 }); }
     first = false;
   }
   if (!findMove()) await reshuffle();
+}
+
+function addScore(p) { stageScore += p; run.total += p; }
+function gainMoves(n, c, r) {
+  moves += n;
+  popups.push({ x: c + .5, y: r + .5, text: `+${n} move${n > 1 ? 's' : ''}`, t: 0, color: '#3dff8a' });
+  if (ult('goldenage')) addScore(300 * run.stage * n);
 }
 
 function gravity() {
@@ -321,13 +474,13 @@ function gravity() {
     let w = N - 1;
     for (let r = N - 1; r >= 0; r--) if (grid[r][c]) { const g = grid[r][c]; grid[r][c] = null; grid[w][c] = g; w--; }
     let spawnY = -1;
-    for (let r = w; r >= 0; r--) { const g = gem(rnd(nColors)); g.x = c; g.y = spawnY--; g.vy = 0; grid[r][c] = g; }
+    for (let r = w; r >= 0; r--) { const g = gem(rnd(nColors)); g.x = c; g.y = spawnY--; grid[r][c] = g; }
   }
-  // physics fall with bounce
   return tween(10, (t, dt) => {
     let moving = false;
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-      const g = grid[r][c]; if (!g || g.y >= r && Math.abs(g.vy) < .5) { if (g) { g.y = r; g.vy = 0; } continue; }
+      const g = grid[r][c];
+      if (g.y >= r && Math.abs(g.vy) < .5) { g.y = r; g.vy = 0; continue; }
       g.vy += FALL_G * dt; g.y += g.vy * dt;
       if (g.y >= r) { g.y = r; g.vy = g.vy > 4 ? -g.vy * .18 : 0; }
       moving = true;
@@ -339,15 +492,17 @@ function gravity() {
 async function reshuffle() {
   popups.push({ x: N / 2, y: N / 2, text: 'SHUFFLE', t: 0, big: true });
   const all = grid.flat();
+  let tries = 0;
   do {
     for (let i = all.length - 1; i > 0; i--) { const j = rnd(i + 1); [all[i], all[j]] = [all[j], all[i]]; }
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) grid[r][c] = all[r * N + c];
+    if (++tries > 200) { for (const g of all) if (g.special === STONE) { g.special = NONE; g.color = rnd(nColors); } }
   } while (findRuns().length || !findMove());
-  const from = all.map(g => [g.x, g.y]);
-  await tween(.4, t => { const k = ease(t); for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const g = grid[r][c], i = all.indexOf(g); g.x = from[i][0] + (c - from[i][0]) * k; g.y = from[i][1] + (r - from[i][1]) * k; } });
+  const from = new Map(all.map(g => [g, [g.x, g.y]]));
+  await tween(.4, t => { const k = ease(t); for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const g = grid[r][c], f = from.get(g); g.x = f[0] + (c - f[0]) * k; g.y = f[1] + (r - f[1]) * k; } });
 }
 
-// ---------- effects ----------
+// ================= effects =================
 function burst(c, r, color, n) {
   const [cr, cg, cb] = color < 0 ? [255, 255, 255] : COLORS[color];
   for (let i = 0; i < n; i++) {
@@ -357,14 +512,14 @@ function burst(c, r, color, n) {
   if (parts.length > 900) parts.splice(0, parts.length - 900);
 }
 function lineFx(r, c, dir, color) { rings.push({ line: dir, x: c + .5, y: r + .5, t: 0, color }); shake = Math.max(shake, 8); }
-function beam(a, b, color) { rings.push({ beam: true, x: a.c + .5, y: a.r + .5, x2: b.c + .5, y2: b.r + .5, t: 0, color }); }
+function beam(a, b, color, bolt) { rings.push({ beam: true, bolt, x: a.c + .5, y: a.r + .5, x2: b.c + .5, y2: b.r + .5, t: 0, color }); }
 function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
 
-// ---------- input: swipe or tap-tap ----------
+// ================= input =================
 let down = null;
 function cellAt(e) { const b = cvs.getBoundingClientRect(); return { c: Math.floor((e.clientX - b.left) / cell), r: Math.floor((e.clientY - b.top) / cell), x: e.clientX, y: e.clientY }; }
 cvs.addEventListener('pointerdown', e => {
-  e.preventDefault(); if (busy) return;
+  e.preventDefault(); if (busy || !playing) return;
   const p = cellAt(e); if (!at(p.r, p.c)) return;
   cvs.setPointerCapture(e.pointerId); idle = 0; hint = null;
   if (sel && Math.abs(sel.r - p.r) + Math.abs(sel.c - p.c) === 1) { const s = sel; sel = null; trySwap(s, p); return; }
@@ -380,35 +535,29 @@ cvs.addEventListener('pointermove', e => {
 const up = () => { down = null; };
 cvs.addEventListener('pointerup', up); cvs.addEventListener('pointercancel', up);
 
-// ---------- rendering ----------
-let bgT = 0;
+// ================= rendering =================
 function draw(dt) {
   const W = size;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, W, W);
   ctx.save();
-  if (shake > .1) { ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake); }
-  // board backdrop
+  if (shake > .1) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     ctx.fillStyle = (r + c) & 1 ? 'rgba(255,255,255,.035)' : 'rgba(255,255,255,.065)';
     ctx.fillRect(c * cell + 1, r * cell + 1, cell - 2, cell - 2);
   }
-  // aurora sweep
-  bgT += dt;
-  const ag = ctx.createLinearGradient(0, 0, W, W);
-  const hue = (bgT * 20) % 360;
-  ag.addColorStop(0, `hsla(${hue},90%,60%,.06)`); ag.addColorStop(1, `hsla(${hue + 120},90%,60%,.06)`);
+  const ag = ctx.createLinearGradient(0, 0, W, W), hue = (time * 20) % 360;
+  const bossTint = run && stageInfo(run.stage).boss ? .12 : .06;
+  ag.addColorStop(0, `hsla(${hue},90%,60%,${bossTint})`); ag.addColorStop(1, `hsla(${hue + 120},90%,60%,${bossTint})`);
   ctx.fillStyle = ag; ctx.fillRect(0, 0, W, W);
 
-  // selection
   if (sel) { const pulse = .5 + .5 * Math.sin(time * 10);
     ctx.strokeStyle = `rgba(255,255,255,${.5 + pulse * .5})`; ctx.lineWidth = 3;
     roundRect(sel.c * cell + 3, sel.r * cell + 3, cell - 6, cell - 6, cell * .2); ctx.stroke(); }
 
-  // gems (additive-feel glow comes from sprite)
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, W); ctx.clip();
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-    const g = grid[r][c]; if (!g) continue;
+    const g = grid[r] && grid[r][c]; if (!g) continue;
     const spr = sprite(g.color, g.special);
     let s = g.scale;
     if (g.spawn > 0) { g.spawn = Math.max(0, g.spawn - dt * 2.5); s *= 1 + Math.sin(g.spawn * Math.PI) * .4; }
@@ -420,7 +569,6 @@ function draw(dt) {
   }
   ctx.globalAlpha = 1; ctx.restore();
 
-  // additive layer: particles, rings, beams
   ctx.globalCompositeOperation = 'lighter';
   for (let i = rings.length - 1; i >= 0; i--) {
     const k = rings[i]; k.t += dt;
@@ -428,7 +576,11 @@ function draw(dt) {
     if (k.beam) {
       const a = 1 - k.t / .45; if (a <= 0) { rings.splice(i, 1); continue; }
       ctx.strokeStyle = `rgba(${cr},${cg},${cb},${a})`; ctx.lineWidth = cell * .12 * a + 1;
-      ctx.beginPath(); ctx.moveTo(k.x * cell, k.y * cell); ctx.lineTo(k.x2 * cell, k.y2 * cell); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(k.x * cell, k.y * cell);
+      if (k.bolt) { // jagged lightning
+        const segs = 6; for (let s = 1; s < segs; s++) { const f = s / segs; ctx.lineTo((k.x + (k.x2 - k.x) * f + (Math.random() - .5) * .5) * cell, (k.y + (k.y2 - k.y) * f + (Math.random() - .5) * .5) * cell); }
+      }
+      ctx.lineTo(k.x2 * cell, k.y2 * cell); ctx.stroke();
     } else if (k.line) {
       const a = 1 - k.t / .35; if (a <= 0) { rings.splice(i, 1); continue; }
       const th = cell * (.2 + .8 * a);
@@ -437,9 +589,12 @@ function draw(dt) {
       ctx.fillStyle = grd;
       if (k.line === 'h') ctx.fillRect(0, k.y * cell - th, W, th * 2); else ctx.fillRect(k.x * cell - th, 0, th * 2, W);
     } else {
-      const a = 1 - k.t / .5; if (a <= 0) { rings.splice(i, 1); continue; }
+      const life = k.big ? .6 : .5, a = 1 - k.t / life; if (a <= 0) { rings.splice(i, 1); continue; }
+      if (k.big) { const g = ctx.createRadialGradient(k.x * cell, k.y * cell, 0, k.x * cell, k.y * cell, cell * 1.6);
+        g.addColorStop(0, `rgba(255,230,180,${a})`); g.addColorStop(.5, `rgba(${cr},${cg},${cb},${a * .6})`); g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = g; ctx.fillRect(k.x * cell - cell * 1.6, k.y * cell - cell * 1.6, cell * 3.2, cell * 3.2); }
       ctx.strokeStyle = `rgba(${cr},${cg},${cb},${a})`; ctx.lineWidth = 4 * a;
-      ctx.beginPath(); ctx.arc(k.x * cell, k.y * cell, cell * (.3 + k.t * 3), 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(k.x * cell, k.y * cell, cell * (.3 + k.t * (k.big ? 5 : 3)), 0, Math.PI * 2); ctx.stroke();
     }
   }
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -452,20 +607,19 @@ function draw(dt) {
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  // score popups
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (let i = popups.length - 1; i >= 0; i--) {
-    const p = popups[i]; p.t += dt; const a = 1 - p.t / 1; if (a <= 0) { popups.splice(i, 1); continue; }
-    ctx.font = `800 ${(p.big ? cell * .7 : cell * .38) * (1 + .3 * Math.max(0, .15 - p.t) / .15)}px system-ui,sans-serif`;
-    ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 6;
-    ctx.fillText(p.text, p.x * cell, (p.y - p.t * .8) * cell); ctx.shadowBlur = 0;
+    const p = popups[i]; p.t += dt; const a = 1 - p.t / 1.1; if (a <= 0) { popups.splice(i, 1); continue; }
+    ctx.font = `800 ${(p.big ? cell * .7 : cell * .36) * (1 + .3 * Math.max(0, .15 - p.t) / .15)}px system-ui,sans-serif`;
+    ctx.globalAlpha = a; ctx.fillStyle = p.color || '#fff'; ctx.shadowColor = 'rgba(0,0,0,.7)'; ctx.shadowBlur = 6;
+    ctx.fillText(p.text, p.x * cell, (p.y - p.t * .8) * cell); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
   ctx.restore();
   if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * .5})`; ctx.fillRect(0, 0, W, W); }
 }
 function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-// ---------- loop ----------
+// ================= loop =================
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now; time += dt;
@@ -475,35 +629,157 @@ function frame(now) {
     if (done) { if (tw.dur < 5) tw.fn(1, 0); tweens.splice(i, 1); tw.res(); }
   }
   shake *= Math.pow(.001, dt); flash = Math.max(0, flash - dt * 3);
-  if (!busy && playing) { idle += dt; if (idle > 5 && !hint) hint = findMove(); }
+  if (!busy && playing) { idle += dt; if (idle > 6 && !hint) hint = findMove(); }
   draw(dt);
   requestAnimationFrame(frame);
 }
 
-// ---------- game flow ----------
-let playing = false;
-function updateHud() {
-  $('level').textContent = level; $('score').textContent = score.toLocaleString(); $('moves').textContent = moves;
-  $('fill').style.width = Math.min(100, score / goal * 100) + '%';
+// ================= HUD =================
+function chipsHtml() {
+  if (!run) return '';
+  let h = '';
+  for (const [id, t] of Object.entries(run.traits)) {
+    const d = TRAITS[id];
+    h += `<div class="chip${t.evo ? ' evo' : ''}"><i style="background:${hex(d.color)}"></i>${t.evo ? d.evo : d.name + ' ' + t.lvl}</div>`;
+  }
+  for (const [id, l] of Object.entries(run.cats)) h += `<div class="chip">${CATS[id].name} ${l}</div>`;
+  for (const id of run.ults) h += `<div class="chip ult">✦ ${ULTS[id].name}</div>`;
+  return h;
 }
-async function startLevel() {
-  nColors = level >= 3 ? 6 : 5;
-  goal = score + 1500 + level * 700; moves = 20 + Math.max(0, 5 - level);
-  sprites.clear(); newBoard(); updateHud(); busy = true; playing = true;
+function updateHud() {
+  if (!run) return;
+  $('stage').textContent = run.stage + '/' + STAGES;
+  $('score').textContent = stageScore.toLocaleString();
+  $('target').textContent = '/ ' + target.toLocaleString();
+  $('moves').textContent = moves;
+  $('fill').style.width = Math.min(100, stageScore / target * 100) + '%';
+  $('build').innerHTML = chipsHtml();
+}
+
+// ================= run flow =================
+function best() { try { return +localStorage.getItem('prism.best') || 0; } catch (e) { return 0; } }
+function saveBest(s) { try { if (s > best()) localStorage.setItem('prism.best', s); } catch (e) {} }
+
+function newRun() {
+  run = { stage: 1, total: 0, traits: {}, cats: {}, ults: new Set(), greenBank: 0 };
+  const starts = Object.keys(TRAITS).sort(() => Math.random() - .5).slice(0, 3).map(id => ({ kind: 'trait', id }));
+  draft('Choose a starting trait', 'It will grow as you draft. Level 5 plus its catalyst unlocks an evolution.', starts, () => startStage());
+}
+
+async function startStage() {
+  const info = stageInfo(run.stage);
+  nColors = info.colors;
+  target = info.target; stageScore = 0;
+  moves = info.moves + 2 * cat('hourglass');
+  run.greenBank = 0;
+  $('mod').textContent = info.name || (info.stones ? `${info.stones} stones on the board` : '');
+  sprites.clear(); newBoard(info.stones); updateHud();
+  busy = true; playing = true;
   await gravity(); busy = false;
 }
-function checkEnd() {
-  if (score >= goal) { playing = false; show('Level ' + level + ' clear!', `Score ${score.toLocaleString()}. Bonus for ${moves} spare moves.`, 'Next', () => { score += moves * 100; level++; startLevel(); }); }
-  else if (moves <= 0) { playing = false; show('Out of moves', `Final score ${score.toLocaleString()} on level ${level}.`, 'Retry', () => { score = 0; level = 1; startLevel(); }); }
-}
-function show(title, msg, btn, cb) {
-  const h = $('overlay').querySelector('h1'); h.textContent = title; h.style.fontSize = '34px'; h.style.letterSpacing = '2px'; $('msg').textContent = msg; $('go').textContent = btn;
-  $('overlay').classList.remove('hide');
-  $('go').onclick = () => { $('overlay').classList.add('hide'); cb(); };
-}
-$('go').onclick = () => { $('overlay').classList.add('hide'); startLevel(); };
 
-resize(); newBoard(); requestAnimationFrame(frame);
+function checkEnd() {
+  if (stageScore >= target) {
+    playing = false;
+    const bonus = moves * 60 * run.stage; run.total += bonus;
+    if (run.stage >= STAGES) { saveBest(run.total); return endScreen('Gauntlet cleared', `You beat all ${STAGES} stages. Final score ${run.total.toLocaleString()}.`); }
+    const cleared = run.stage++;
+    const offers = makeOffers();
+    draft(`Stage ${cleared} cleared`, `+${bonus.toLocaleString()} for ${moves} spare moves. Choose one.`, offers, () => startStage());
+  } else if (moves <= 0) {
+    playing = false; saveBest(run.total);
+    endScreen('Run over', `Fell on stage ${run.stage} with ${stageScore.toLocaleString()} of ${target.toLocaleString()}. Run score ${run.total.toLocaleString()}.`);
+  }
+}
+
+function makeOffers() {
+  const evos = [], pool = [];
+  for (const [id, t] of Object.entries(run.traits)) {
+    if (t.evo) continue;
+    if (t.lvl >= 5 && run.cats[TRAITS[id].cat]) evos.push({ kind: 'evo', id });
+    else if (t.lvl < 5) pool.push({ kind: 'trait', id });
+  }
+  if (Object.keys(run.traits).length < MAX_TRAITS) for (const id in TRAITS) if (!run.traits[id]) pool.push({ kind: 'trait', id });
+  for (const id in CATS) {
+    const l = run.cats[id] || 0;
+    if (l && l < CATS[id].max) pool.push({ kind: 'cat', id });
+    else if (!l && Object.keys(run.cats).length < MAX_CATS) pool.push({ kind: 'cat', id });
+  }
+  pool.sort(() => Math.random() - .5);
+  const offers = [...evos, ...pool].slice(0, Math.max(3, evos.length));
+  while (offers.length < 3) offers.push({ kind: 'cache' });
+  return offers;
+}
+
+function cardHtml(o) {
+  if (o.kind === 'trait') {
+    const d = TRAITS[o.id], t = run.traits[o.id], lvl = t ? t.lvl + 1 : 1;
+    return { cls: '', ic: d.name[0], bg: hex(d.color), title: `${d.name}<em>${t ? 'Lv ' + t.lvl + ' → ' + lvl : 'New trait'}</em>`,
+      body: d.desc(lvl + (run.cats.lens || 0)) + (lvl === 5 ? ` Evolves with ${CATS[d.cat].name}.` : '') };
+  }
+  if (o.kind === 'cat') {
+    const d = CATS[o.id], l = (run.cats[o.id] || 0) + 1;
+    const pairs = Object.values(TRAITS).filter(t => t.cat === o.id).map(t => t.name);
+    return { cls: '', ic: d.name[0], bg: '#cfc8ff', title: `${d.name}<em>${l > 1 ? 'Lv ' + (l - 1) + ' → ' + l : 'New catalyst'}</em>`,
+      body: d.desc(l) + (pairs.length ? ` Pairs with ${pairs[0]}.` : '') };
+  }
+  if (o.kind === 'evo') {
+    const d = TRAITS[o.id];
+    const unlocks = Object.values(ULTS).filter(u => u.needs.includes(o.id)).map(u => u.name).join(', ');
+    return { cls: 'evo', ic: '✦', bg: 'linear-gradient(135deg,#ffd66b,' + hex(d.color) + ')', title: `${d.evo}<em>Evolve ${d.name}</em>`,
+      body: d.evoDesc + ` Keeps level 5. Part of: ${unlocks}.` };
+  }
+  return { cls: '', ic: '+', bg: '#8f88b8', title: 'Gem cache<em>Build is full</em>', body: '+3 moves on the next stage.' };
+}
+
+function take(o) {
+  if (o.kind === 'trait') { const t = run.traits[o.id]; if (t) t.lvl++; else run.traits[o.id] = { lvl: 1, evo: false }; }
+  else if (o.kind === 'cat') run.cats[o.id] = (run.cats[o.id] || 0) + 1;
+  else if (o.kind === 'evo') run.traits[o.id].evo = true;
+  else run.cacheMoves = (run.cacheMoves || 0) + 3;
+  const fresh = [];
+  for (const [id, u] of Object.entries(ULTS)) if (!run.ults.has(id) && u.needs.every(evo)) { run.ults.add(id); fresh.push(u); }
+  return fresh;
+}
+
+function draft(title, msg, offers, then) {
+  showOverlay(title, msg);
+  const box = $('cards'); box.innerHTML = '';
+  $('go').hidden = true;
+  offers.forEach(o => {
+    const v = cardHtml(o), b = document.createElement('button');
+    b.className = 'card ' + v.cls;
+    b.innerHTML = `<div class="ic" style="background:${v.bg}">${v.ic}</div><b>${v.title}</b><span>${v.body}</span>`;
+    b.onclick = () => {
+      const ults = take(o);
+      if (ults.length) {
+        showOverlay('Ultimate unlocked', ults.map(u => `${u.name}: ${u.desc}`).join(' '));
+        $('cards').innerHTML = ''; $('go').hidden = false; $('go').textContent = 'Continue';
+        $('go').onclick = () => { hideOverlay(); then(); applyCache(); };
+        buzz([30, 40, 60]);
+      } else { hideOverlay(); then(); applyCache(); }
+    };
+    box.appendChild(b);
+  });
+  $('build').innerHTML = chipsHtml();
+}
+function applyCache() { if (run.cacheMoves) { moves += run.cacheMoves; run.cacheMoves = 0; updateHud(); } }
+
+function endScreen(title, msg) {
+  showOverlay(title, msg + ` Best run: ${best().toLocaleString()}.`);
+  $('summary').innerHTML = chipsHtml();
+  $('go').hidden = false; $('go').textContent = 'New run';
+  $('go').onclick = () => { hideOverlay(); newRun(); };
+}
+function showOverlay(title, msg) {
+  $('otitle').textContent = title; $('otitle').style.fontSize = title.length > 8 ? '32px' : '52px'; $('otitle').style.letterSpacing = title.length > 8 ? '2px' : '10px';
+  $('msg').textContent = msg; $('summary').innerHTML = ''; $('cards').innerHTML = '';
+  $('overlay').classList.remove('hide');
+}
+function hideOverlay() { $('overlay').classList.add('hide'); }
+
+$('go').onclick = () => { hideOverlay(); newRun(); };
+resize(); newBoard(0); requestAnimationFrame(frame);
 </script>
 </body>
 </html>
