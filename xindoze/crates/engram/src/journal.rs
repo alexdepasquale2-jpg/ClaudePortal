@@ -56,8 +56,11 @@ impl Engram {
         let row = EncodedEvent::new(ev)?;
         let mut db = self.db();
         let tx = db.transaction().map_err(db_err)?;
-        tx.execute(INSERT_EVENT, row.params(&self.device_id, None))
-            .map_err(db_err)?;
+        tx.execute(
+            INSERT_EVENT,
+            params_from_iter(row.values(&self.device_id, None)),
+        )
+        .map_err(db_err)?;
         let seq = tx.last_insert_rowid();
         // Local events are their own origin, which keeps Hive sync queries uniform.
         tx.execute("UPDATE events SET origin_seq = ?1 WHERE seq = ?1", [seq])
@@ -156,7 +159,10 @@ impl Engram {
         let mut added = 0;
         for (ev, row) in &rows {
             added += tx
-                .execute(INSERT_EVENT, row.params(&ev.device, Some(ev.seq)))
+                .execute(
+                    INSERT_EVENT,
+                    params_from_iter(row.values(&ev.device, Some(ev.seq))),
+                )
                 .map_err(db_err)?;
         }
         tx.commit().map_err(db_err)?;
@@ -201,27 +207,26 @@ impl<'a> EncodedEvent<'a> {
         })
     }
 
-    fn params<'b>(
-        &'b self,
-        device: &'b str,
-        origin_seq: Option<i64>,
-    ) -> impl rusqlite::Params + 'b {
+    fn values(&self, device: &str, origin_seq: Option<i64>) -> Vec<SqlValue> {
         let ev = self.ev;
-        params![
-            device,
-            origin_seq,
-            ev.ts_ms,
-            ev.organism,
-            ev.task_id,
-            ev.tool,
-            self.args,
-            self.risk,
-            self.verdict,
-            self.taint,
-            ev.ok,
-            ev.summary,
-            self.effects,
-            ev.rewound,
+        vec![
+            SqlValue::Text(device.to_string()),
+            match origin_seq {
+                Some(n) => SqlValue::Integer(n),
+                None => SqlValue::Null,
+            },
+            SqlValue::Integer(ev.ts_ms),
+            SqlValue::Text(ev.organism.clone()),
+            SqlValue::Text(ev.task_id.clone()),
+            SqlValue::Text(ev.tool.clone()),
+            SqlValue::Text(self.args.clone()),
+            SqlValue::Text(self.risk.clone()),
+            SqlValue::Text(self.verdict.clone()),
+            SqlValue::Text(self.taint.clone()),
+            SqlValue::Integer(i64::from(ev.ok)),
+            SqlValue::Text(ev.summary.clone()),
+            SqlValue::Text(self.effects.clone()),
+            SqlValue::Integer(i64::from(ev.rewound)),
         ]
     }
 }
@@ -252,7 +257,9 @@ pub(crate) fn event_from_row(r: &Row<'_>, origin: bool) -> rusqlite::Result<Jour
 fn enum_text<T: Serialize>(v: &T) -> Result<String> {
     match serde_json::to_value(v)? {
         Value::String(s) => Ok(s),
-        other => Err(XzError::Parse(format!("expected a unit variant, got {other}"))),
+        other => Err(XzError::Parse(format!(
+            "expected a unit variant, got {other}"
+        ))),
     }
 }
 
@@ -266,4 +273,85 @@ pub(crate) fn json_col<T: DeserializeOwned>(r: &Row<'_>, idx: usize) -> rusqlite
     let s: String = r.get(idx)?;
     serde_json::from_str(&s)
         .map_err(|e| rusqlite::Error::FromSqlConversionFailure(idx, Type::Text, Box::new(e)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Engram;
+    use serde_json::json;
+    use xz_types::{Effect, Risk, Taint, Verdict};
+
+    fn event(tool: &str, task: &str) -> JournalEvent {
+        JournalEvent {
+            seq: 99,
+            device: "ignored".into(),
+            ts_ms: 1_000,
+            organism: "prime".into(),
+            task_id: task.into(),
+            tool: tool.into(),
+            args: json!({"path": "/tmp/a"}),
+            risk: Risk::Observe,
+            verdict: Verdict::Allowed,
+            taint: Taint::from_source("file:/tmp/a"),
+            ok: true,
+            summary: tool.into(),
+            effects: vec![Effect::Irreversible {
+                note: "none".into(),
+            }],
+            rewound: false,
+        }
+    }
+
+    #[test]
+    fn append_stamps_device_and_queries_filter() {
+        let eg = Engram::open_temp().unwrap();
+        let seq = eg.append(&event("fs.list", "t1")).unwrap();
+        assert_eq!(seq, 1);
+        let got = eg.event(seq).unwrap().unwrap();
+        assert_eq!(got.device, "local");
+        assert_eq!(got.seq, 1);
+        assert_eq!(got.tool, "fs.list");
+        assert_eq!(got.taint.sources.iter().next().unwrap(), "file:/tmp/a");
+        assert!(
+            eg.events(&EventQuery {
+                task_id: Some("missing".into()),
+                ..EventQuery::default()
+            })
+            .unwrap()
+            .is_empty()
+        );
+        eg.mark_rewound(seq).unwrap();
+        assert!(!eg.mark_rewound(seq).unwrap());
+        assert!(eg.events(&EventQuery::default()).unwrap().is_empty());
+        assert_eq!(
+            eg.events(&EventQuery {
+                include_rewound: true,
+                ..EventQuery::default()
+            })
+            .unwrap()
+            .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn merge_remote_is_idempotent_and_rejects_self() {
+        let eg = Engram::open_temp().unwrap();
+        let mut remote = event("fs.read", "t");
+        remote.device = "phone".into();
+        remote.seq = 4;
+        remote.ts_ms = 50;
+        assert_eq!(eg.merge_remote(vec![remote.clone()]).unwrap(), 1);
+        assert_eq!(eg.merge_remote(vec![remote.clone()]).unwrap(), 0);
+        let mut mine = event("fs.read", "t");
+        mine.device = "local".into();
+        mine.seq = 1;
+        assert_eq!(eg.merge_remote(vec![mine]).unwrap(), 0);
+        assert_eq!(eg.last_seq("phone").unwrap(), 4);
+        let since = eg.events_since("phone", 0).unwrap();
+        assert_eq!(since.len(), 1);
+        assert_eq!(since[0].seq, 4);
+        assert!(eg.events_since("phone", 4).unwrap().is_empty());
+    }
 }
