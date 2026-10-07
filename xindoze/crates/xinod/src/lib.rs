@@ -73,6 +73,9 @@ pub async fn eval_all(dir: &Path) -> Result<EvalReport> {
 /// Renders an outcome as a few lines for the terminal.
 pub fn render(outcome: &xz_types::Outcome) -> String {
     let mut lines = Vec::new();
+    if let Some(id) = &outcome.crystal {
+        lines.push(format!("crystal {id}"));
+    }
     if let Some(say) = &outcome.say {
         lines.push(say.clone());
     }
@@ -98,6 +101,26 @@ impl VerdictWord for StepRecord {
             Verdict::Declined => "declined",
             Verdict::Denied => "denied",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_names_the_crystal() {
+        let outcome = xz_types::Outcome {
+            task_id: "t".into(),
+            organism: "xindoze.hive".into(),
+            say: Some("hi".into()),
+            ui: None,
+            steps: vec![],
+            crystal: Some("xtal".into()),
+            done: true,
+        };
+        let text = render(&outcome);
+        assert!(text.starts_with("crystal xtal\nhi"), "{text}");
     }
 }
 
