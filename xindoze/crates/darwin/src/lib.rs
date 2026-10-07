@@ -2,8 +2,8 @@
 //!
 //! The fast path is a versioned plan template. QuickJS synthesis
 //! (`(slots, tools) => result`) is TODO(phase 3); this crate does not embed
-//! a JS runtime. A crystal is the tool sequence plus argument templates
-//! whose holes are words taken from the intent.
+//! a JS runtime. A crystal skips the planner only when the command and its
+//! context match. Tool-returned paths are re-derived by re-running the tools.
 //!
 //! Champion and challenger live in [`promote`]. A challenger replaces the
 //! champion only when it passes strictly more evals and is no slower.
@@ -13,7 +13,7 @@ mod crystal;
 mod promote;
 
 pub use crystal::{
-    Crystal, Field, MemoryCrystalCache, PatternToken, PlanTemplate, RUNS_TO_PROMOTE, StepTemplate,
-    TEMPLATE_VERSION, TemplateValue, TextPart, TextTemplate, diff,
+    CRYSTAL_NS, Crystal, Field, MemoryCrystalCache, PatternToken, PlanTemplate, RUNS_TO_PROMOTE,
+    StepTemplate, TEMPLATE_VERSION, TemplateValue, TextPart, TextTemplate, diff,
 };
 pub use promote::{Champion, Reject, Score, promote};

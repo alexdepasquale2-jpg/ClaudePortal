@@ -1,6 +1,7 @@
 <!-- The Stream: intents, replies and action cards, newest at the bottom. -->
 <script lang="ts">
   import { tick } from 'svelte';
+  import streamEmpty from '../../../../assets/canvas/empty/stream.svg';
   import { entrance } from '../lib/motion';
   import { shell } from '../lib/shell.svelte';
   import Logo from './Logo.svelte';
@@ -43,9 +44,13 @@
             ],
             duration: 900,
             delay: 300,
-          }}>Xindoze has evolved.</span
+          }}
+          >Xindoze has evolved.</span
         >
       </p>
+      {#if shell.entries.length === 1}
+        <img class="empty-art" src={streamEmpty} alt="" width="200" height="143" />
+      {/if}
     {:else if entry.kind === 'intent'}
       <p class="intent">
         <span class="prompt" aria-hidden="true">›</span>
@@ -84,6 +89,12 @@
     font-family: var(--font-mono);
     font-size: 1.05rem;
     letter-spacing: 0.01em;
+  }
+
+  .empty-art {
+    align-self: center;
+    margin: 12px 0 28px;
+    opacity: 0.9;
   }
 
   .intent {

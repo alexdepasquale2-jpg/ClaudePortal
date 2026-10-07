@@ -16,8 +16,9 @@ use xz_engram::{Engram, Episode};
 use xz_genome::{Genome, Observed};
 use xz_types::plan::plan_schema;
 use xz_types::{
-    ChatMessage, Confirmer, CrystalCache, GenRequest, Grant, Inference, Outcome, Plan, Result,
-    Risk, StepRecord, Taint, ToolCall, ToolInvoker, ToolOutput, Trace, TraceStep, Verdict, XzError,
+    ChatMessage, Confirmer, ContextAnchor, CrystalCache, CrystalQuery, GenRequest, Grant,
+    Inference, Outcome, Plan, Result, Risk, StepRecord, Taint, ToolCall, ToolInvoker, ToolOutput,
+    Trace, TraceStep, Verdict, XzError,
 };
 use xz_warden::{Charter, Warden};
 
@@ -96,6 +97,13 @@ impl Session {
         if genomes.is_empty() {
             return Err(XzError::NotFound("no genomes installed".into()));
         }
+        let crystals = MemoryCrystalCache::new();
+        let stored = engram.kv_list(xz_darwin::CRYSTAL_NS, "")?;
+        let loaded: Vec<xz_darwin::Crystal> = stored
+            .into_iter()
+            .filter_map(|(_, value)| serde_json::from_value(value).ok())
+            .collect();
+        crystals.import(&loaded);
         Ok(Self {
             home: cfg.home,
             genomes,
@@ -104,7 +112,7 @@ impl Session {
             engram,
             warden,
             token_budget: cfg.token_budget,
-            crystals: MemoryCrystalCache::new(),
+            crystals,
         })
     }
 
@@ -296,6 +304,7 @@ impl Session {
             crystal: None,
             done,
         };
+        let query = self.crystal_query(genome, intent);
         self.crystals
             .observe(&Trace {
                 organism: outcome.organism.clone(),
@@ -304,8 +313,12 @@ impl Session {
                 ok: outcome.done && outcome.steps.iter().all(|step| step.ok),
                 say: outcome.say.clone(),
                 ui: outcome.ui.clone(),
+                charter_generation: query.charter_generation,
+                grants: query.grants,
+                taint: query.taint,
             })
             .await;
+        self.persist_crystals()?;
         Ok(outcome)
     }
 
@@ -313,14 +326,16 @@ impl Session {
     /// returns `None` so the caller takes the fluid path. The Warden still
     /// journals any call the crystal already made.
     async fn try_crystal(&self, genome: &Genome, intent: &str, task_id: &str) -> Option<Outcome> {
+        let query = self.crystal_query(genome, intent);
         let invoker = BusInvoker {
             synapse: &self.synapse,
             organism: &genome.id,
             task_id,
             grants: &genome.capabilities,
+            taint: query.taint.clone(),
             steps: Mutex::new(Vec::new()),
         };
-        let run = match self.crystals.try_run(&genome.id, intent, &invoker).await {
+        let run = match self.crystals.try_run(&query, &invoker).await {
             Some(Ok(run)) => run,
             Some(Err(_)) | None => return None,
         };
@@ -347,6 +362,39 @@ impl Session {
             .map(|spec| spec.name)
             .filter(|name| grants.iter().any(|g| grant_matches(&g.tool, name)))
             .collect()
+    }
+
+    /// Context the crystal key is checked against. The home folder is the
+    /// ambient search root (`~`). A plan that chose another root, account
+    /// or recipient does not match.
+    fn crystal_query(&self, genome: &Genome, intent: &str) -> CrystalQuery {
+        CrystalQuery {
+            organism: genome.id.clone(),
+            intent: intent.to_string(),
+            charter_generation: self.warden.charter().generation(),
+            grants: genome.capabilities.clone(),
+            taint: Taint::none(),
+            anchors: vec![ContextAnchor {
+                field: "root".into(),
+                value: "~".into(),
+            }],
+        }
+    }
+
+    fn persist_crystals(&self) -> Result<()> {
+        for crystal in self.crystals.crystals() {
+            if self
+                .engram
+                .kv_get(xz_darwin::CRYSTAL_NS, &crystal.crystal_id)?
+                .is_some()
+            {
+                continue;
+            }
+            let value = serde_json::to_value(&crystal)?;
+            self.engram
+                .kv_set(xz_darwin::CRYSTAL_NS, &crystal.crystal_id, &value)?;
+        }
+        Ok(())
     }
 
     fn remember_dropped(&self, task_id: &str, organism: &str, dropped: &[String]) -> Result<()> {
@@ -377,6 +425,7 @@ struct BusInvoker<'a> {
     organism: &'a str,
     task_id: &'a str,
     grants: &'a [Grant],
+    taint: Taint,
     steps: Mutex<Vec<StepRecord>>,
 }
 
@@ -391,7 +440,7 @@ impl ToolInvoker for BusInvoker<'_> {
                 self.grants,
                 &call.tool,
                 call.args,
-                &Taint::none(),
+                &self.taint,
             )
             .await?;
         let output = result
@@ -635,7 +684,12 @@ mod tests {
         let say = outcome.say.expect("pairing says the code");
         let code = say.strip_prefix("Pairing code: ").unwrap();
         assert_eq!(code.len(), 8, "{say}");
-        assert!(outcome.steps.iter().any(|step| step.tool == "hive.pair_begin" && step.ok));
+        assert!(
+            outcome
+                .steps
+                .iter()
+                .any(|step| step.tool == "hive.pair_begin" && step.ok)
+        );
     }
 
     #[tokio::test]
@@ -664,6 +718,73 @@ mod tests {
                 .any(|step| step.tool == "hive.peers" && step.ok)
         );
         assert_eq!(fast.say.as_deref(), Some("No devices are paired."));
+    }
+
+    #[tokio::test]
+    async fn a_crystal_survives_restart_for_the_same_command_and_context() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let data = home.join(".xindoze");
+        let genomes = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../genomes");
+        let open = || {
+            Session::open(SessionConfig {
+                home: home.clone(),
+                data_dir: data.clone(),
+                device_id: "local".into(),
+                genome_dirs: vec![genomes.clone()],
+                inference: Arc::new(Cortex::single(Arc::new(OfflineReflex), "offline")),
+                confirmer: Arc::new(AlwaysYes),
+                token_budget: 3000,
+            })
+            .unwrap()
+        };
+        let intent = "which of my devices are online?";
+        {
+            let session = open();
+            let hive = session
+                .genomes
+                .iter()
+                .find(|g| g.id == "xindoze.hive")
+                .unwrap()
+                .clone();
+            for _ in 0..5 {
+                let outcome = session.handle_genome(&hive, intent).await.unwrap();
+                assert!(outcome.crystal.is_none(), "{outcome:?}");
+            }
+        }
+        let session = open();
+        let hive = session
+            .genomes
+            .iter()
+            .find(|g| g.id == "xindoze.hive")
+            .unwrap()
+            .clone();
+        let fast = session.handle_genome(&hive, intent).await.unwrap();
+        assert!(fast.crystal.is_some(), "{fast:?}");
+        assert!(
+            fast.steps
+                .iter()
+                .any(|step| step.tool == "hive.peers" && step.ok)
+        );
+        let other = session
+            .handle_genome(&hive, "pair using kitchen")
+            .await
+            .unwrap();
+        assert!(other.crystal.is_none(), "{other:?}");
+
+        let mut charter = session.warden().charter();
+        let rule = xz_warden::parse_rule(json!({
+            "text": "ask before sending",
+            "subject": "*",
+            "tool": "people.message_send",
+            "decision": "ask"
+        }))
+        .unwrap();
+        charter.add_rule(rule).unwrap();
+        session.warden().set_charter(charter).unwrap();
+        let after = session.handle_genome(&hive, intent).await.unwrap();
+        assert!(after.crystal.is_none(), "{after:?}");
     }
 
     #[tokio::test]

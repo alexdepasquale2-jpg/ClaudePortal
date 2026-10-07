@@ -4,6 +4,7 @@
  */
 
 import * as api from './api';
+import { cue } from './cues';
 import type {
   AskEvent,
   CharterRule,
@@ -89,6 +90,7 @@ class Shell {
     keep(api.onAsk((e) => this.#onAsk(e)));
     keep(api.onStep((e) => this.#onStep(e)));
 
+    cue('boot-evolved');
     void this.refresh();
     const timer = window.setInterval(() => {
       if (!document.hidden) void this.refreshPulse();
@@ -109,6 +111,7 @@ class Shell {
     if (this.history[this.history.length - 1] !== t) this.history.push(t);
     if (this.history.length > HISTORY_MAX) this.history.shift();
 
+    cue('intent-sent');
     this.entries.push({ kind: 'intent', key: this.#key++, text: t, organism });
     this.entries.push({
       kind: 'task',
@@ -126,8 +129,11 @@ class Shell {
       entry.steps = out.steps;
       entry.outcome = out;
       if (out.ui) this.#showUi(out.organism, out.ui, out.task_id);
+      const blocked = out.steps.some((s) => s.verdict === 'denied' || s.verdict === 'declined');
+      cue(blocked ? 'deny' : out.done ? 'task-done' : 'notification');
     } catch (e) {
       entry.error = api.errorText(e);
+      cue('error');
     }
     void this.refresh();
   }
@@ -145,11 +151,13 @@ class Shell {
     } catch (e) {
       ask.busy = false;
       ask.error = api.errorText(e);
+      cue('error');
     }
   }
 
   /** Undoes a task. Throws when the runtime fails. */
   async rewind(taskId: string): Promise<RewindReport> {
+    cue('rewind');
     try {
       return await api.rewind(taskId);
     } finally {
@@ -188,7 +196,15 @@ class Shell {
 
   async refreshPulse(): Promise<void> {
     try {
-      this.pulse = await api.pulse();
+      const next = await api.pulse();
+      const before = this.pulse;
+      if (before) {
+        const was = new Set(before.peers.filter((p) => p.online).map((p) => p.name));
+        const now = new Set(next.peers.filter((p) => p.online).map((p) => p.name));
+        if ([...now].some((name) => !was.has(name))) cue('hive-connect');
+        if ([...was].some((name) => !now.has(name))) cue('hive-disconnect');
+      }
+      this.pulse = next;
     } catch {
       // Keep the last reading; the next poll retries.
     }
@@ -210,6 +226,7 @@ class Shell {
   #onAsk(e: AskEvent) {
     this.asks.push({ ...e, busy: false, error: null });
     this.announcement = `Approval needed: ${e.ask.organism} wants to run ${e.ask.tool}.`;
+    cue('warden-ask');
   }
 
   #onStep({ task_id, step }: StepEvent) {

@@ -1,0 +1,17 @@
+[package]
+name = "xz-boot"
+description = "Native boot, xinod service lifecycle, and reversible Windows login (SPEC §4)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true
+xz-bridge = { path = "../bridge" }
+async-trait.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

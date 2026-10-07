@@ -2,7 +2,7 @@
 
 ## STATUS (2026-10-07)
 
-Phase 0 loop is on the base Engram, Genome, Bridge and Seed Bank. `xz` routes an intent, plans with the offline reflex (or Ollama when `XZ_MODEL` is set), and journals every call. Phase 1 slice: Context Pager, Files act + Rewind, Charter rules that hold a later send. Shell stays a workspace member; this host has no WebKit, so local `cargo test` excludes `xindoze-shell`. Next: Crystal fast path (phase 3), Hive pairing (phase 2), Android.
+Phase 0 loop is on the base Engram, Genome, Bridge and Seed Bank. `xz` routes an intent, plans with the offline reflex (or Ollama when `XZ_MODEL` is set), and journals every call. Phase 1 slice: Context Pager, Files act + Rewind, Charter rules that hold a later send. Shell stays a workspace member; this host has no WebKit, so local `cargo test` excludes `xindoze-shell`. Native boot (this track): `xz-boot` plans the Alpine + cage + xinod lifecycle, renders a layout behind `XZ_NATIVE_BUILD=1`, and models Windows Takeover as a reversible fullscreen-at-login launcher. It does not edit Hive, Crystal, Android, or the Tauri shell. Next for other tracks: Crystal fast path (phase 3), Hive pairing (phase 2), Android.
 
 Build all phases (0–4) as one Rust workspace + Tauri shell. Contracts first, then parallel waves.
 

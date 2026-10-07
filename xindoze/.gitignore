@@ -1,4 +1,5 @@
 target/
+native/out/
 node_modules/
 dist/
 *.gguf

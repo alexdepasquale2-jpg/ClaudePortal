@@ -1,6 +1,7 @@
 <!-- Canvas panes: Organism UIs (XUI). One is shown; chips switch between them. -->
 <script lang="ts">
   import { shell } from '../lib/shell.svelte';
+  import canvasEmpty from '../../../../assets/canvas/empty/canvas.svg';
   import PaneView from './PaneView.svelte';
 
   const pane = $derived(shell.panes.find((p) => p.organism === shell.activePane) ?? null);
@@ -28,6 +29,7 @@
     {/key}
   {:else}
     <div class="empty">
+      <img src={canvasEmpty} alt="" width="200" height="143" />
       <p class="eyebrow">Canvas</p>
       <p>Organism interfaces appear here.</p>
       <p class="hint">Try <q>show my water this week</q> or <q>find my largest files</q>.</p>
