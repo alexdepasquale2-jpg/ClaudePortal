@@ -297,6 +297,18 @@ impl Charter {
         Ok(())
     }
 
+    /// Stable id of this policy. Crystals store it so an edited Charter
+    /// cannot skip the planner on the strength of the old wording.
+    pub fn generation(&self) -> String {
+        let text = serde_json::to_string(self).unwrap_or_default();
+        let mut hash = 0xcbf29ce484222325u64;
+        for byte in text.as_bytes() {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+        format!("{hash:016x}")
+    }
+
     /// The first free id of the form `rN`.
     fn next_id(&self) -> String {
         let mut n = self.rules.len() + 1;
@@ -325,6 +337,18 @@ mod tests {
             decision,
             when: None,
         }
+    }
+
+    #[test]
+    fn generation_changes_when_a_rule_is_added() {
+        let first = Charter::default();
+        let mut second = first.clone();
+        second
+            .add_rule(rule("r1", "fs.delete", Policy::Deny))
+            .unwrap();
+        assert_eq!(first.generation(), Charter::default().generation());
+        assert_ne!(first.generation(), second.generation());
+        assert_eq!(first.generation().len(), 16);
     }
 
     #[test]
