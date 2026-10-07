@@ -19,7 +19,7 @@
     if (!svg) return '';
     return svg.replace(
       '<svg ',
-      `<svg width="${size}" height="${size}" aria-hidden="true" focusable="false" `,
+      `<svg width="${size}" height="${size}" aria-hidden="true" focusable="false" style="flex:none;display:block" `,
     );
   });
 </script>
