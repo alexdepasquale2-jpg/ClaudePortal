@@ -158,7 +158,7 @@ Everything above runs in one daemon, **`xinod`**, with the Canvas as its face. O
   - `events`: the Journal.
   - `episodes`: summarized sessions.
   - `facts`: subject–predicate–object with confidence and source.
-  - `vectors`: sqlite-vec.
+  - `vectors`: embeddings as BLOBs with brute-force cosine search. That is fast enough at personal scale and avoids a C extension; sqlite-vec can replace it if memory grows past that.
   - `organism_state`: per-Organism key-value store.
 - **Context Pager:** this is virtual memory for the context window. Each prompt is assembled within a token budget: Prime Genome + Organism Genome + working set + retrieved memories + recent tool results. Content is evicted by relevance and overflow is summarized into episodes.
 - **Forget** is a first-class command and a real deletion, covering rows, vectors and blobs.
@@ -312,7 +312,7 @@ An Ancestor profile is a Genome whose Organ is an app. Input injection is always
 | Inference | Ollama · llama.cpp (`llama-cpp-2` bindings) · MLC LLM (optional) | MIT · MIT · Apache-2.0 |
 | Small models / speech runtime | ONNX Runtime (`ort`) · whisper.cpp | MIT · MIT |
 | Tool protocol | Model Context Protocol, official Rust SDK (`rmcp`) | open spec |
-| Memory | SQLite (`rusqlite`) + sqlite-vec | Public domain + MIT/Apache-2.0 |
+| Memory | SQLite (`rusqlite`, bundled) | Public domain + MIT |
 | Crystal VM | QuickJS (`rquickjs`) | MIT |
 | Hive networking | iroh | MIT/Apache-2.0 |
 | Windows bridge | `windows-rs` | MIT/Apache-2.0 |
@@ -329,16 +329,25 @@ An Ancestor profile is a Genome whose Organ is an app. Input injection is always
 ```
 xindoze/
 ├─ crates/
-│  ├─ core/      # xinod: synapse, warden, journal, genome, engram, scheduler
-│  ├─ cortex/    # inference backends + model registry + calibration
-│  ├─ darwin/    # evals, mutation, crystallizer, crystal VM
-│  └─ bridge/    # Host trait + windows / android / linux / native impls + organs
-├─ shell/        # Tauri v2 app (Svelte): Canvas, XUI renderer, Android plugin (Kotlin)
+│  ├─ types/     # shared contracts: tools, taint, models, plan, XUI, journal
+│  ├─ cortex/    # inference backends, model registry, scheduler, calibration
+│  ├─ warden/    # Charter + deterministic policy engine
+│  ├─ engram/    # memory, Journal, blob store, Rewind
+│  ├─ genome/    # Genome format: parse, validate, sign
+│  ├─ bridge/    # Host trait, platform impls, core Organs, Ancestors, MCP mount
+│  ├─ core/      # runtime: Synapse, Organisms, router, Context Pager
+│  ├─ darwin/    # evals, evolution, Crystallizer, Crystal VM
+│  ├─ hive/      # peer-to-peer mesh (iroh)
+│  ├─ senses/    # speech in and out
+│  └─ xinod/     # the xinod daemon and the xz CLI
+├─ shell/        # Canvas: Svelte UI (ui/), Tauri app (src-tauri/), Android plugin (plugins/)
 ├─ genomes/      # Seed Bank: first-party genomes + their evals
 ├─ models.toml   # model registry (data)
-├─ native/       # Native Edition image build (Alpine + cage)
-└─ docs/
+├─ deny.toml     # license gate
+└─ native/       # Native Edition image build (Alpine + cage)
 ```
+
+One crate per component keeps each one testable on its own and lets the parts be built in parallel.
 
 ---
 
@@ -535,16 +544,21 @@ Respond only with JSON matching the PlanSchema:
 | Family | Tools (risk) |
 |---|---|
 | `fs` | `read`, `list`, `stat`, `search` (observe) · `write`, `move`, `copy`, `mkdir`, `trash` (act) · `delete_permanent` (commit) |
-| `proc` | `list` (observe) · `spawn`, `open_with` (act) · `kill` (commit) |
+| `proc` | `list` (observe) · `open` (act; refuses executables) · `spawn`, `kill` (commit; spawn output is tainted) |
 | `net` | `fetch` (observe, egress-checked, tainted output) · `post` (commit) |
-| `clip` | `read` (observe) · `write` (act) |
+| `clip` | `read` (observe, tainted) · `write` (act) |
 | `notify` | `show`, `schedule` (act) |
 | `media` | `capture_photo`, `record_audio`, `screenshot` (observe, indicator always shown) · `speak` (act) |
-| `people` | `contacts.search`, `calendar.list` (observe) · `calendar.add` (act) · `message.send` (commit) |
-| `ui` | `windows.list`, `tree.read` (observe, tainted) · `focus` (act) · `click`, `type` (commit) |
-| `engram` | `search`, `kv.read` (observe) · `kv.write`, `remember` (act) · `forget` (commit) |
-| `sys` | `info`, `battery` (observe) · `settings.set` (act) |
+| `voice` | `transcribe` (observe) |
+| `people` | `contacts_search`, `calendar_list` (observe) · `calendar_add` (act) · `message_send` (commit) |
+| `ui` | `windows_list`, `tree_read` (observe, tainted) · `focus` (act) · `click`, `type` (commit) |
+| `engram` | `search`, `kv_read`, `kv_list` (observe) · `kv_write`, `remember` (act) · `forget` (commit, always asks) |
+| `sys` | `info` (observe) |
 | `hive` | `peers` (observe) · `send`, `run_on` (act) |
+| `xz` | `genomes`, `journal`, `pulse` (observe) · `install_genome`, `rewind` (act) · `charter_add_rule` (commit, always asks) |
+| `ancestor` | `<program>` (commit): a legacy CLI wrapped from its `--help` |
+
+Tool names are `family.verb`. Third-party MCP tools mount as `<server>.<tool>` and always count as commit.
 
 ---
 

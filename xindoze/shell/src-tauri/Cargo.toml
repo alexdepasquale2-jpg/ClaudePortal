@@ -1,0 +1,10 @@
+[package]
+name = "xindoze-shell"
+description = "Canvas: the Xindoze shell (Tauri v2) for desktop and Android."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true
