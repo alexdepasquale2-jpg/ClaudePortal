@@ -23,3 +23,11 @@ tempfile = "3"
 [profile.release]
 lto = "thin"
 strip = true
+
+# Build-time only. Line tables keep panic locations; dependency debuginfo
+# is what makes a clean core build slow. Runtime behavior is unchanged.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

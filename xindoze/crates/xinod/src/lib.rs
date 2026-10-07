@@ -33,8 +33,47 @@ pub fn open_session(home: &Path, confirmer: Arc<dyn Confirmer>) -> Result<Sessio
         genome_dirs,
         inference: inference()?,
         confirmer,
-        token_budget: 3000,
+        token_budget: prompt_budget(),
     })
+}
+
+/// Loads the Ollama model and holds it for [`OllamaBackend::KEEP_ALIVE`].
+///
+/// The warm-up call uses the same `num_ctx` as later plans. A miss here does
+/// not stop the Intent Bar; the next request reports the model error.
+pub async fn warm_planner() {
+    let Ok(model) = std::env::var("XZ_MODEL") else {
+        return;
+    };
+    let model = model.trim();
+    if model.is_empty() {
+        return;
+    }
+    let url = std::env::var("XZ_OLLAMA").unwrap_or_else(|_| "http://127.0.0.1:11434".into());
+    let backend = match OllamaBackend::new(url) {
+        Ok(backend) => backend.with_context(OllamaBackend::context_from_env()),
+        Err(err) => {
+            eprintln!("xinod: model warm-up skipped: {err}");
+            return;
+        }
+    };
+    if let Err(err) = backend.warm(model).await {
+        eprintln!("xinod: model warm-up skipped: {err}");
+    }
+}
+
+fn prompt_budget() -> usize {
+    if std::env::var("XZ_MODEL")
+        .ok()
+        .is_some_and(|model| !model.trim().is_empty())
+    {
+        let ctx = OllamaBackend::context_from_env();
+        // Leave the default completion (1024) inside num_ctx so Ollama does
+        // not drop the system prompt to make room.
+        usize::try_from(ctx.saturating_sub(1024).max(1024)).unwrap_or(1024)
+    } else {
+        3000
+    }
 }
 
 /// Runs every eval of every genome under `dir` against a throwaway home.
@@ -153,7 +192,7 @@ fn inference() -> Result<Arc<dyn Inference>> {
         if !model.trim().is_empty() {
             let url =
                 std::env::var("XZ_OLLAMA").unwrap_or_else(|_| "http://127.0.0.1:11434".into());
-            let backend = OllamaBackend::new(url)?;
+            let backend = OllamaBackend::new(url)?.with_context(OllamaBackend::context_from_env());
             return Ok(Arc::new(Cortex::single(Arc::new(backend), &model)));
         }
     }

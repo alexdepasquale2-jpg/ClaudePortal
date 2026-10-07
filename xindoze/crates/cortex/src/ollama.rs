@@ -13,7 +13,7 @@ pub struct OllamaBackend {
     base: String,
     client: reqwest::Client,
     timeout: Duration,
-    num_ctx: Option<u32>,
+    num_ctx: u32,
 }
 
 impl OllamaBackend {
@@ -23,6 +23,12 @@ impl OllamaBackend {
     pub const URL_ENV: &'static str = "XZ_OLLAMA_URL";
     /// How long `available` waits before calling the server absent.
     const PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+    /// Keep the model loaded between Intent Bar requests.
+    pub const KEEP_ALIVE: &'static str = "30m";
+    /// Fits qwen3:8b on a 4 GB GPU. Override with `XZ_NUM_CTX`.
+    pub const DEFAULT_NUM_CTX: u32 = 4096;
+    /// Environment variable that overrides [`Self::DEFAULT_NUM_CTX`].
+    pub const NUM_CTX_ENV: &'static str = "XZ_NUM_CTX";
 
     /// A backend for the server at `base_url`, e.g. `http://127.0.0.1:11434`.
     pub fn new(base_url: impl Into<String>) -> Result<Self, XzError> {
@@ -43,8 +49,17 @@ impl OllamaBackend {
             client,
             // Large models on a CPU can take minutes to answer.
             timeout: Duration::from_secs(600),
-            num_ctx: None,
+            num_ctx: Self::DEFAULT_NUM_CTX,
         })
+    }
+
+    /// `XZ_NUM_CTX` when it is a positive integer, otherwise 4096.
+    pub fn context_from_env() -> u32 {
+        std::env::var(Self::NUM_CTX_ENV)
+            .ok()
+            .and_then(|raw| raw.trim().parse().ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(Self::DEFAULT_NUM_CTX)
     }
 
     /// Uses `$XZ_OLLAMA_URL`, or the default local URL.
@@ -53,7 +68,7 @@ impl OllamaBackend {
             .ok()
             .filter(|u| !u.trim().is_empty())
             .unwrap_or_else(|| Self::DEFAULT_URL.into());
-        Self::new(url)
+        Ok(Self::new(url)?.with_context(Self::context_from_env()))
     }
 
     pub fn base_url(&self) -> &str {
@@ -66,12 +81,26 @@ impl OllamaBackend {
         self
     }
 
-    /// Context window to request (`options.num_ctx`). Ollama's default is
-    /// small and silently truncates long prompts. Keep it fixed: every change
-    /// makes Ollama reload the model.
+    /// Context window sent on every call (`options.num_ctx`).
+    ///
+    /// Warm-up and real requests must use this same value. A different
+    /// `num_ctx` makes Ollama reload the model.
     pub fn with_context(mut self, num_ctx: u32) -> Self {
-        self.num_ctx = Some(num_ctx);
+        self.num_ctx = num_ctx.max(1);
         self
+    }
+
+    pub fn num_ctx(&self) -> u32 {
+        self.num_ctx
+    }
+
+    /// Load `model` and hold it with [`Self::KEEP_ALIVE`]. Uses the same
+    /// `num_ctx` as [`Self::generate`].
+    pub async fn warm(&self, model: &str) -> Result<(), XzError> {
+        let mut req = GenRequest::new(xz_types::Role::Reflex, vec![ChatMessage::user("ok")]);
+        req.max_tokens = 1;
+        req.temperature = 0.0;
+        self.generate(model, &req).await.map(|_| ())
     }
 
     async fn post(
@@ -119,6 +148,11 @@ struct ChatBody<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     format: Option<&'a Value>,
     options: Value,
+    keep_alive: &'a str,
+    /// Qwen3 thinking. `false` keeps the planner on the answer. Omitted on
+    /// the `/no_think` fallback when a server rejects the field.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    think: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -149,6 +183,38 @@ struct ErrorBody {
     error: String,
 }
 
+fn chat_options(req: &GenRequest, num_ctx: u32) -> Value {
+    // num_parallel stays unset. OLLAMA_NUM_PARALLEL must stay at 1; raising
+    // it blows a 4 GB GPU that is already spilling qwen3:8b.
+    json!({
+        "temperature": req.temperature,
+        "num_predict": req.max_tokens,
+        "num_ctx": num_ctx,
+    })
+}
+
+fn think_field_rejected(err: &XzError) -> bool {
+    let text = err.to_string().to_ascii_lowercase();
+    text.contains("think")
+}
+
+fn no_think_messages(messages: &[ChatMessage]) -> Vec<ChatMessage> {
+    let mut messages = messages.to_vec();
+    if let Some(last) = messages
+        .iter_mut()
+        .rev()
+        .find(|message| matches!(message.role, xz_types::MsgRole::User))
+    {
+        if !last.content.contains("/no_think") {
+            if !last.content.is_empty() {
+                last.content.push('\n');
+            }
+            last.content.push_str("/no_think");
+        }
+    }
+    messages
+}
+
 #[async_trait]
 impl ModelBackend for OllamaBackend {
     fn id(&self) -> &str {
@@ -171,18 +237,33 @@ impl ModelBackend for OllamaBackend {
 
     async fn generate(&self, model: &str, req: &GenRequest) -> Result<GenResponse, XzError> {
         let start = Instant::now();
-        let mut options = json!({"temperature": req.temperature, "num_predict": req.max_tokens});
-        if let Some(n) = self.num_ctx {
-            options["num_ctx"] = json!(n);
-        }
+        let options = chat_options(req, self.num_ctx);
         let body = ChatBody {
             model,
             messages: &req.messages,
             stream: false,
             format: req.json_schema.as_ref(),
-            options,
+            options: options.clone(),
+            keep_alive: Self::KEEP_ALIVE,
+            think: Some(false),
         };
-        let bytes = self.post("/api/chat", &body, model).await?;
+        let bytes = match self.post("/api/chat", &body, model).await {
+            Ok(bytes) => bytes,
+            Err(err) if think_field_rejected(&err) => {
+                let messages = no_think_messages(&req.messages);
+                let fallback = ChatBody {
+                    model,
+                    messages: &messages,
+                    stream: false,
+                    format: req.json_schema.as_ref(),
+                    options,
+                    keep_alive: Self::KEEP_ALIVE,
+                    think: None,
+                };
+                self.post("/api/chat", &fallback, model).await?
+            }
+            Err(err) => return Err(err),
+        };
         let reply: ChatReply = serde_json::from_slice(&bytes)
             .map_err(|e| XzError::Model(format!("ollama /api/chat: bad reply: {e}")))?;
         let millis = match reply.total_duration / 1_000_000 {
@@ -202,7 +283,11 @@ impl ModelBackend for OllamaBackend {
         if texts.is_empty() {
             return Ok(vec![]);
         }
-        let body = json!({"model": model, "input": texts});
+        let body = json!({
+            "model": model,
+            "input": texts,
+            "keep_alive": Self::KEEP_ALIVE,
+        });
         let bytes = self.post("/api/embed", &body, model).await?;
         let reply: EmbedReply = serde_json::from_slice(&bytes)
             .map_err(|e| XzError::Model(format!("ollama /api/embed: bad reply: {e}")))?;
@@ -340,6 +425,9 @@ mod tests {
             body["options"],
             json!({"temperature": 0.0, "num_predict": 64, "num_ctx": 8192})
         );
+        assert!(body["options"].get("num_parallel").is_none());
+        assert_eq!(body["keep_alive"], "30m");
+        assert_eq!(body["think"], false);
         assert_eq!(
             body["messages"][0],
             json!({"role": "system", "content": "be brief"})
@@ -356,7 +444,58 @@ mod tests {
         let reqs = fake.requests();
         let body = &reqs[0].2;
         assert!(body.get("format").is_none());
-        assert!(body["options"].get("num_ctx").is_none());
+        assert_eq!(body["options"]["num_ctx"], json!(4096));
+        assert_eq!(body["keep_alive"], "30m");
+        assert_eq!(body["think"], false);
+        assert!(body["options"].get("num_parallel").is_none());
+    }
+
+    #[tokio::test]
+    async fn think_false_falls_back_to_no_think() {
+        let fake = FakeOllama::start(|_, _, body| {
+            if body.get("think").is_some() {
+                (400, json!({"error": "unknown field think"}))
+            } else {
+                (200, chat_reply("{\"ok\":true}"))
+            }
+        })
+        .await;
+        let ollama = OllamaBackend::new(&fake.url).unwrap();
+        let req = GenRequest::new(Role::Cortex, vec![ChatMessage::user("plan")]);
+        assert_eq!(
+            ollama.generate("qwen3:8b", &req).await.unwrap().text,
+            "{\"ok\":true}"
+        );
+        let reqs = fake.requests();
+        assert_eq!(reqs.len(), 2);
+        assert_eq!(reqs[0].2["think"], false);
+        assert_eq!(
+            reqs[0].2["options"]["num_ctx"],
+            reqs[1].2["options"]["num_ctx"]
+        );
+        assert!(reqs[1].2.get("think").is_none());
+        assert!(
+            reqs[1].2["messages"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("/no_think")
+        );
+    }
+
+    #[tokio::test]
+    async fn warm_uses_the_same_num_ctx() {
+        let fake = FakeOllama::start(|_, _, _| (200, chat_reply("ok"))).await;
+        let ollama = OllamaBackend::new(&fake.url).unwrap().with_context(4096);
+        ollama.warm("qwen3:8b").await.unwrap();
+        let req = GenRequest::new(Role::Cortex, vec![ChatMessage::user("list files")]);
+        ollama.generate("qwen3:8b", &req).await.unwrap();
+        let reqs = fake.requests();
+        assert_eq!(reqs[0].2["options"]["num_ctx"], json!(4096));
+        assert_eq!(
+            reqs[1].2["options"]["num_ctx"],
+            reqs[0].2["options"]["num_ctx"]
+        );
+        assert_eq!(reqs[0].2["keep_alive"], reqs[1].2["keep_alive"]);
     }
 
     #[tokio::test]
@@ -383,6 +522,7 @@ mod tests {
         assert!(ollama.embed("all-minilm", &[]).await.unwrap().is_empty());
         let reqs = fake.requests();
         assert_eq!(reqs.last().unwrap().2["input"], json!(["a", "b"]));
+        assert_eq!(reqs.last().unwrap().2["keep_alive"], "30m");
     }
 
     #[tokio::test]

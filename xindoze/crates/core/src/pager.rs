@@ -24,22 +24,38 @@ pub fn page(budget_tokens: usize, system: &str, memories: &[String], notes: &[St
 
     let mut kept_memories = Vec::new();
     for memory in memories.iter().rev() {
-        if !kept_memories.is_empty() && used.saturating_add(memory.len()) > budget {
-            break;
+        let room = budget.saturating_sub(used);
+        if memory.len() <= room {
+            used = used.saturating_add(memory.len());
+            kept_memories.push(memory.clone());
+            continue;
         }
-        used = used.saturating_add(memory.len());
-        kept_memories.push(memory.clone());
+        if let Some(clipped) = clip_to(memory, room) {
+            used = budget;
+            kept_memories.push(clipped);
+        }
+        break;
     }
     kept_memories.reverse();
 
     let mut kept_notes = Vec::new();
     let mut dropped = Vec::new();
     for note in notes.iter().rev() {
-        if !kept_notes.is_empty() && used.saturating_add(note.len()) > budget {
-            dropped.push(note.clone());
-        } else {
+        let room = budget.saturating_sub(used);
+        if note.len() <= room {
             used = used.saturating_add(note.len());
             kept_notes.push(note.clone());
+            continue;
+        }
+        // A single tool result must not push the prompt past the budget.
+        // Ollama drops the front of an over-long prompt, which is the system
+        // text. Clip this note, or drop it when nothing useful fits.
+        match clip_to(note, room) {
+            Some(clipped) => {
+                used = budget;
+                kept_notes.push(clipped);
+            }
+            None => dropped.push(note.clone()),
         }
     }
     dropped.reverse();
@@ -49,6 +65,27 @@ pub fn page(budget_tokens: usize, system: &str, memories: &[String], notes: &[St
     sections.extend(kept_memories);
     sections.extend(kept_notes);
     Page { sections, dropped }
+}
+
+const CLIP_MARK: &str = "\n…[truncated]";
+
+fn clip_to(text: &str, room: usize) -> Option<String> {
+    if room <= CLIP_MARK.len() {
+        return None;
+    }
+    let mut end = room - CLIP_MARK.len();
+    if end > text.len() {
+        end = text.len();
+    }
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    if end == 0 {
+        return None;
+    }
+    let mut out = text[..end].to_string();
+    out.push_str(CLIP_MARK);
+    Some(out)
 }
 
 #[cfg(test)]
@@ -62,5 +99,19 @@ mod tests {
         assert!(page.sections[0].starts_with("system"));
         assert!(page.dropped.iter().any(|d| d.starts_with("aaaa")));
         assert!(page.sections.iter().any(|s| s.starts_with("cccc")));
+    }
+
+    #[test]
+    fn a_huge_tool_note_is_clipped_inside_the_budget() {
+        let huge = format!("UNTRUSTED DATA\ntool: fs.search\n{}", "x".repeat(20_000));
+        let page = page(64, "system prompt stays", &[], &[huge]);
+        let total: usize = page.sections.iter().map(|section| section.len()).sum();
+        assert!(total <= 64 * 4, "{total}");
+        assert!(page.sections[0].starts_with("system prompt"));
+        assert!(
+            page.sections
+                .iter()
+                .any(|section| section.contains("[truncated]"))
+        );
     }
 }

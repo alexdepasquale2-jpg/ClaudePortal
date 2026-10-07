@@ -3,7 +3,7 @@
 use std::env;
 use std::process::ExitCode;
 
-use xinod::{confirmer, eval_all, genomes_root, home_dir, open_session, render};
+use xinod::{confirmer, eval_all, genomes_root, home_dir, open_session, render, warm_planner};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -62,6 +62,7 @@ async fn run() -> xz_types::Result<()> {
             words.extend(args);
             let intent = words.join(" ");
             let home = home_dir()?;
+            warm_planner().await;
             let session = open_session(&home, confirmer())?;
             let outcome = session.handle(&intent).await?;
             println!("{}", render(&outcome));
