@@ -7,34 +7,11 @@ plugins {
 
 android {
     namespace = "org.xindoze.bridge"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 29
         consumerProguardFiles("consumer-rules.pro")
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++17"
-                arguments += listOf(
-                    "-DGGML_NATIVE=OFF",
-                    "-DGGML_OPENMP=OFF",
-                    "-DGGML_LLAMAFILE=OFF",
-                    "-DLLAMA_BUILD_TESTS=OFF",
-                    "-DLLAMA_BUILD_EXAMPLES=OFF",
-                    "-DLLAMA_BUILD_SERVER=OFF",
-                    "-DLLAMA_BUILD_TOOLS=OFF",
-                    "-DBUILD_SHARED_LIBS=OFF"
-                )
-                abiFilters += listOf("arm64-v8a")
-            }
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
     }
 
     compileOptions {

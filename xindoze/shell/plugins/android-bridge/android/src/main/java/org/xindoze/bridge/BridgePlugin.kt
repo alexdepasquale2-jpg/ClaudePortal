@@ -38,11 +38,11 @@ class UrlArgs {
 class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     override fun load(webView: WebView) {
         activity.runOnUiThread {
-            if (BuildHasNotifications()) {
-                // The system may still ask. The persistent notice is the service.
+            if (canNotify()) {
+                startXinod()
+            } else if (android.os.Build.VERSION.SDK_INT >= 33) {
+                activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4101)
             }
-            val intent = Intent(activity, XinodService::class.java)
-            ContextCompat.startForegroundService(activity, intent)
         }
     }
 
@@ -66,7 +66,7 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
             val ret = JSObject()
             ret.put("text", text)
             invoke.resolve(ret)
-        } catch (err: Exception) {
+        } catch (err: Throwable) {
             val ret = JSObject()
             ret.put("text", "model: " + (err.message ?: "failed"))
             invoke.resolve(ret)
@@ -110,7 +110,16 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         return battery.isCharging
     }
 
-    private fun BuildHasNotifications(): Boolean {
+    private fun startXinod() {
+        try {
+            val intent = Intent(activity, XinodService::class.java)
+            ContextCompat.startForegroundService(activity, intent)
+        } catch (_: Throwable) {
+            // A missing notification grant must not stop the Canvas from opening.
+        }
+    }
+
+    private fun canNotify(): Boolean {
         if (android.os.Build.VERSION.SDK_INT < 33) return true
         return ContextCompat.checkSelfPermission(
             activity,
