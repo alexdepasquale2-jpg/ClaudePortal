@@ -11,4 +11,5 @@ xz-types.workspace = true
 xz-core = { path = "../core" }
 xz-cortex = { path = "../cortex" }
 xz-genome = { path = "../genome" }
+xz-boot = { path = "../boot" }
 tokio.workspace = true
