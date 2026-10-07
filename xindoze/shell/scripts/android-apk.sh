@@ -30,7 +30,10 @@ fi
 
 cd "$SHELL_DIR"
 export CI=true
-npx --yes @tauri-apps/cli@2.11.5 android init --ci --skip-targets-install
+# Install the CLI as a real binary. `npx` makes Gradle re-enter through npm
+# from src-tauri, which has no package.json.
+npm install -g @tauri-apps/cli@2.11.5
+tauri android init --ci --skip-targets-install
 
 # Tauri copies icons/android into res on init. Copy again so splash XML is present
 # even if an older generated tree is reused, then point the launcher activity at it.
@@ -65,7 +68,7 @@ path.write_text(updated)
 print("launch theme set to Theme.Xindoze.Splash")
 PY
 
-npx --yes @tauri-apps/cli@2.11.5 android build --debug --apk --target aarch64
+tauri android build --debug --apk --target aarch64
 
 mapfile -t APKS < <(find "$SHELL_DIR/src-tauri/gen/android" -path '*outputs/apk/debug/*.apk' -name '*.apk' -printf '%T@ %p\n' | sort -n | awk '{print $2}')
 if [[ ${#APKS[@]} -eq 0 ]]; then
