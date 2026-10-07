@@ -30,9 +30,11 @@ fi
 
 cd "$SHELL_DIR"
 export CI=true
-# Install the CLI as a real binary. `npx` makes Gradle re-enter through npm
-# from src-tauri, which has no package.json.
-npm install -g @tauri-apps/cli@2.11.5
+# A native CLI. The npm shim is a node script, and Gradle then runs
+# `node tauri` inside src-tauri, which is not a module.
+cargo install tauri-cli --version 2.11.5 --locked
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+command -v tauri
 tauri android init --ci --skip-targets-install
 
 # Tauri copies icons/android into res on init. Copy again so splash XML is present
