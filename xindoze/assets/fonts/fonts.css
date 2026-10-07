@@ -1,0 +1,164 @@
+/* Canvas UI faces, bundled for offline use (SPEC §7, §14). No CDN.
+   Family names match shell/ui/src/app.css. Licenses: ../LICENSES.md */
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter/InterVariable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter/InterVariable-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter/InterVariable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter/InterVariable-Italic.woff2") format("woff2");
+}
+
+/* Official static woff2 cuts. Weight 550 resolves to SemiBold and 650 to Bold. */
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-MediumItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-SemiBoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-BoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-MediumItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-SemiBoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./jetbrains-mono/JetBrainsMono-BoldItalic.woff2") format("woff2");
+}
