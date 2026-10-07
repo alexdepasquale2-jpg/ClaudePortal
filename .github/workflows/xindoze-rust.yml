@@ -25,12 +25,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: xindoze
       - name: Build
         run: >
-          cargo build --locked
+          cargo +stable build --locked
           -p xz-types
           -p xz-warden
           -p xz-cortex
@@ -44,7 +46,7 @@ jobs:
           -p xinod
       - name: Test
         run: >
-          cargo test --locked
+          cargo +stable test --locked
           -p xz-types
           -p xz-warden
           -p xz-cortex
