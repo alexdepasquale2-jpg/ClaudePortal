@@ -93,9 +93,10 @@ if [[ -n "$AAPT" ]]; then
     exit 1
   fi
   grep -q 'XinodService' "$DIST/manifest.txt"
-  grep -q 'Theme.Xindoze.Splash' "$DIST/manifest.txt"
 fi
 unzip -l "$DIST/xindoze-debug.apk" | tee "$DIST/files.txt"
 grep -q 'ic_launcher' "$DIST/files.txt"
 grep -q 'xindoze_splash.png' "$DIST/files.txt"
+# aapt's manifest dump prints a resource id, not the style name. The name is in the APK.
+grep -a -q 'Theme.Xindoze.Splash' "$DIST/xindoze-debug.apk"
 echo "apk checks passed"
