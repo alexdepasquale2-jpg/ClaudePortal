@@ -34,8 +34,8 @@ export CI=true
 # `node tauri` inside src-tauri, which is not a module.
 cargo install tauri-cli --version 2.11.5 --locked
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-command -v tauri
-tauri android init --ci --skip-targets-install
+command -v cargo-tauri
+cargo tauri android init --ci --skip-targets-install
 
 # Tauri copies icons/android into res on init. Copy again so splash XML is present
 # even if an older generated tree is reused, then point the launcher activity at it.
@@ -70,7 +70,7 @@ path.write_text(updated)
 print("launch theme set to Theme.Xindoze.Splash")
 PY
 
-tauri android build --debug --apk --target aarch64
+cargo tauri android build --debug --apk --target aarch64
 
 mapfile -t APKS < <(find "$SHELL_DIR/src-tauri/gen/android" -path '*outputs/apk/debug/*.apk' -name '*.apk' -printf '%T@ %p\n' | sort -n | awk '{print $2}')
 if [[ ${#APKS[@]} -eq 0 ]]; then
