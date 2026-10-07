@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" role="img" aria-labelledby="boot-title">
+  <title id="boot-title">Xindoze has evolved.</title>
+  <defs>
+    <linearGradient id="dna" x1="600" y1="180" x2="840" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF5A1F"/>
+      <stop offset="1" stop-color="#2BF5C4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="720" cy="400" r="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2BF5C4" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#2BF5C4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <style>
+    @font-face {
+      font-family: "Inter Variable";
+      src: url("../../fonts/inter/InterVariable.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+    }
+    .bg { fill: #0B0D10; }
+    .wash { fill: #EDE8DF; }
+    .membrane { fill: none; stroke: #EDE8DF; }
+    .line, .rule { fill: #EDE8DF; }
+    .cell { fill: rgba(43, 245, 196, 0.16); stroke: #EDE8DF; }
+    .daughter { fill: rgba(43, 245, 196, 0.2); stroke: #EDE8DF; }
+    .centromere { fill: #0B0D10; stroke: #2BF5C4; }
+    .core { fill: #2BF5C4; }
+    .band { stroke: #EDE8DF; }
+    .cell, .daughter, .glow { opacity: 0; }
+    .arm { stroke-dashoffset: 0; }
+    .centromere, .core, .band, .line, .rule, .glow-final { opacity: 1; }
+    .line {
+      font-family: "Inter Variable", Inter, sans-serif;
+      font-size: 42px;
+      font-weight: 560;
+      letter-spacing: -0.02em;
+    }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #EDE8DF; }
+      .wash { fill: #0B0D10; }
+      .membrane, .line, .rule, .band, .cell, .daughter { stroke: #0B0D10; }
+      .line, .rule { fill: #0B0D10; }
+      .cell { fill: rgba(11, 143, 114, 0.12); }
+      .daughter { fill: rgba(11, 143, 114, 0.16); }
+      .centromere { fill: #EDE8DF; stroke: #0B8F72; }
+      .core { fill: #0B8F72; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .glow-final { opacity: 0; animation: arise 0.8s ease 1.7s forwards; }
+      .cell {
+        opacity: 1;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: cell 2.5s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      .daughter {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: pinch 1.15s cubic-bezier(0.2, 0.7, 0.2, 1) 0.55s forwards;
+      }
+      .d2 { animation-name: pinch2; }
+      .arm {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        animation: draw 1.2s cubic-bezier(0.16, 0.84, 0.32, 1) 0.95s forwards;
+      }
+      .band, .centromere, .core, .line, .rule { opacity: 0; animation: arise 0.7s ease 1.85s forwards; }
+      .line { animation-delay: 2s; }
+    }
+    @keyframes cell {
+      0% { opacity: 0; transform: scale(0.55); }
+      16% { opacity: 1; transform: scale(1); }
+      40% { opacity: 1; transform: scale(0.7, 1.38); }
+      68% { opacity: 0; transform: scale(0.25, 1.6); }
+      100% { opacity: 0; transform: scale(0.2, 1.7); }
+    }
+    @keyframes pinch {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+      28% { opacity: 0.95; transform: translate(-18px, -8px) scale(1); }
+      100% { opacity: 0; transform: translate(-54px, -28px) scale(0.3); }
+    }
+    @keyframes pinch2 {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+      28% { opacity: 0.95; transform: translate(18px, 8px) scale(1); }
+      100% { opacity: 0; transform: translate(54px, 28px) scale(0.3); }
+    }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes arise { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+  <rect class="bg" width="1440" height="900"/>
+  <ellipse class="wash" cx="280" cy="760" rx="340" ry="260" opacity="0.045"/>
+  <ellipse class="wash" cx="1180" cy="180" rx="300" ry="220" opacity="0.04"/>
+  <ellipse class="membrane" cx="220" cy="160" rx="90" ry="70" stroke-width="1.25" opacity="0.18"/>
+  <ellipse class="membrane" cx="1240" cy="720" rx="120" ry="86" stroke-width="1.25" opacity="0.16"/>
+  <ellipse class="membrane" cx="160" cy="640" rx="54" ry="70" stroke-width="1.25" opacity="0.14"/>
+  <circle class="glow glow-final" cx="720" cy="400" r="220" fill="url(#glow)" filter="url(#soft)"/>
+  <g transform="translate(720 400)">
+    <circle class="cell" r="52" stroke-width="2"/>
+    <circle class="daughter d1" r="24" stroke-width="1.5"/>
+    <circle class="daughter d2" r="24" stroke-width="1.5"/>
+    <!-- Finished chromosome: two chromatids joined at the centre. -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="#EDE8DF" stroke-opacity="0.28" stroke-width="26" transform="translate(4 7)">
+        <path class="arm" pathLength="1" d="M-118-198C48-96 36-36 0 0C-36 48-52 112-128 208"/>
+        <path class="arm" pathLength="1" d="M118-198C-48-96-36-36 0 0C36 48 52 112 128 208"/>
+      </g>
+      <g stroke="url(#dna)" stroke-width="22">
+        <path class="arm" pathLength="1" d="M-118-198C48-96 36-36 0 0C-36 48-52 112-128 208"/>
+        <path class="arm" pathLength="1" d="M118-198C-48-96-36-36 0 0C36 48 52 112 128 208"/>
+      </g>
+      <g class="band" fill="none" stroke-width="3" stroke-linecap="round">
+        <path d="M-70-162l28-16"/>
+        <path d="M-52-148l26-14"/>
+        <path d="M-8-102l24-10"/>
+        <path d="M-48 48l22 14"/>
+        <path d="M-74 98l24 16"/>
+        <path d="M70-162l-28-16"/>
+        <path d="M52-148l-26-14"/>
+        <path d="M8-102l-24-10"/>
+        <path d="M48 48l-22 14"/>
+        <path d="M74 98l-24 16"/>
+      </g>
+    </g>
+    <circle class="centromere" r="13" stroke-width="4"/>
+    <circle class="core" r="4.5"/>
+  </g>
+  <rect class="rule" x="660" y="632" width="120" height="2" rx="1"/>
+  <text class="line" x="720" y="688" text-anchor="middle">Xindoze has evolved.</text>
+</svg>
