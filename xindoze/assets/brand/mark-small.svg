@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <title>Xindoze mark, small</title>
+  <desc>Simplified chromosome X for 32 px and below. Thicker arms, no bands, no centromere bead.</desc>
+  <g stroke-linecap="round" fill="none" stroke-width="176">
+    <path d="M250 200C490 400 490 624 250 824" stroke="#FF5A1F"/>
+    <path d="M774 200C534 400 534 624 774 824" stroke="#2BF5C4"/>
+  </g>
+</svg>

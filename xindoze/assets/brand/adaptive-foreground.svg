@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" fill="none">
+  <title>Xindoze adaptive icon foreground</title>
+  <desc>Mark inset so the stroke stays inside the Android adaptive-icon safe circle (66 of 108).</desc>
+  <!-- Ink height of the 1024 master, including a 112 stroke, is 784. Scale 60/784 keeps it inside the 66 circle. -->
+  <g transform="translate(14.84 14.84) scale(0.07653)" stroke-linecap="round" fill="none">
+    <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" stroke-width="112"/>
+    <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" stroke-width="112"/>
+    <circle cx="512" cy="512" r="48" fill="#0B0D10" stroke="none"/>
+    <circle cx="512" cy="512" r="30" fill="#EDE8DF" stroke="none"/>
+  </g>
+</svg>
