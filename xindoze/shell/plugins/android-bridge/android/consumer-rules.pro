@@ -1,0 +1,1 @@
+-keep class org.xindoze.bridge.** { *; }

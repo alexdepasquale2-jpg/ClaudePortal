@@ -3,5 +3,19 @@
   "identifier": "default",
   "description": "What the Canvas UI may call on every platform: core window/app basics and event listening.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:event:default"]
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "allow-intent",
+    "allow-intent-for",
+    "allow-tool-call",
+    "allow-confirm-reply",
+    "allow-rewind",
+    "allow-pulse",
+    "allow-genomes",
+    "allow-journal",
+    "allow-charter",
+    "allow-blob",
+    "allow-open-url"
+  ]
 }

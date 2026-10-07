@@ -10,7 +10,9 @@ links = "tauri-plugin-android-bridge"
 
 [dependencies]
 xz-types.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 tauri = "2"
 
 [target.'cfg(target_os = "android")'.dependencies]

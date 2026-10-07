@@ -19,6 +19,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 xz-types.workspace = true
+xz-android = { path = "../../crates/android" }
+xz-cortex = { path = "../../crates/cortex" }
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true

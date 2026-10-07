@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Persistent xinod notice. No INTERNET: the model is in the APK. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name="org.xindoze.bridge.XinodService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Xindoze local inference on this phone" />
+        </service>
+
+        <service
+            android:name="org.xindoze.bridge.SummonTile"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_xindoze"
+            android:label="Xindoze"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Overlay: assistant gesture. Not an AccessibilityService. -->
+        <activity-alias
+            android:name="org.xindoze.bridge.Assist"
+            android:exported="true"
+            android:targetActivity="org.xindoze.shell.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Takeover: HOME launcher. Play Lite sets xindoze_home_launcher to false. -->
+        <activity-alias
+            android:name="org.xindoze.bridge.Home"
+            android:enabled="@bool/xindoze_home_launcher"
+            android:exported="true"
+            android:targetActivity="org.xindoze.shell.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>
