@@ -6,5 +6,31 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+default = []
+# Speech-to-text with whisper.cpp, compiled from source (needs cmake and a C++ toolchain).
+whisper = ["dep:whisper-rs"]
+# Microphone capture through cpal. On Linux this needs the ALSA headers (libasound2-dev).
+mic = ["audio-io"]
+# Kokoro-82M text-to-speech on ONNX Runtime. The runtime library is loaded when
+# the speaker starts (ORT_DYLIB_PATH or KokoroFiles::runtime), so nothing is downloaded at build time.
+kokoro = ["dep:ort", "audio-io"]
+# Internal: audio device access shared by `mic` and `kokoro`.
+audio-io = ["dep:cpal"]
+
 [dependencies]
 xz-types.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tempfile.workspace = true
+hound = "3"
+toml = "1"
+whisper-rs = { version = "0.16", optional = true }
+cpal = { version = "0.18", optional = true }
+ort = { version = "=2.0.0-rc.10", default-features = false, features = ["std", "load-dynamic"], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Media_Speech", "Win32_System_Com"] }

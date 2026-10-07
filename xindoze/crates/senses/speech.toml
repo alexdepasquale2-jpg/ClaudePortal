@@ -1,0 +1,69 @@
+# Speech model registry for Senses (SPEC §3.6, §5). Data, not code.
+#
+# Same conventions as the workspace models.toml: public sources only, no keys;
+# sha256 stays empty until verified against the real file (never guess it);
+# file order is preference order. xz-cortex ignores [[speech]] tables and
+# SpeechRegistry ignores everything else, so these entries can move into
+# models.toml unchanged.
+#
+# Each [[speech]] entry:
+#   name        unique id
+#   kind        stt (speech-to-text) | tts (text-to-speech)
+#   engine      whisper (whisper.cpp ggml) | kokoro (ONNX, needs ONNX Runtime and espeak-ng)
+#   tiers       device tiers this entry is a pick for: spore | sprout | apex
+#   license     SPDX id. Only OSI licenses (Apache-2.0, MIT, BSD-*) are picked.
+#   min_ram_mb  RAM needed while the model runs
+#   files       [{url, sha256, size_mb, name?}], stored as <data>/models/<name or URL file name>.
+#               kokoro: files[0] is the ONNX model, files[1] the voice style file.
+#   source      public model card
+#
+# Spore has no TTS entry on purpose: it uses the platform speaker (SAPI, espeak-ng, Android).
+
+[[speech]]
+name = "whisper-large-v3-turbo"
+kind = "stt"
+engine = "whisper"
+tiers = ["apex"]
+license = "MIT"
+min_ram_mb = 2048
+source = "https://huggingface.co/ggerganov/whisper.cpp"
+files = [
+    { url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin", sha256 = "", size_mb = 1624 },
+]
+
+[[speech]]
+name = "whisper-base"
+kind = "stt"
+engine = "whisper"
+tiers = ["sprout"]
+license = "MIT"
+min_ram_mb = 512
+source = "https://huggingface.co/ggerganov/whisper.cpp"
+files = [
+    { url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", sha256 = "", size_mb = 148 },
+]
+
+[[speech]]
+name = "whisper-tiny"
+kind = "stt"
+engine = "whisper"
+tiers = ["spore", "sprout", "apex"]
+license = "MIT"
+min_ram_mb = 384
+source = "https://huggingface.co/ggerganov/whisper.cpp"
+files = [
+    { url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin", sha256 = "", size_mb = 78 },
+]
+
+[[speech]]
+name = "kokoro-82m"
+kind = "tts"
+engine = "kokoro"
+tiers = ["sprout", "apex"]
+license = "Apache-2.0"
+min_ram_mb = 512
+source = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX"
+files = [
+    { url = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/onnx/model_quantized.onnx", sha256 = "", size_mb = 92, name = "kokoro-82m-v1.0-quantized.onnx" },
+    { url = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/af_heart.bin", sha256 = "", size_mb = 1, name = "kokoro-82m-v1.0-af_heart.bin" },
+]

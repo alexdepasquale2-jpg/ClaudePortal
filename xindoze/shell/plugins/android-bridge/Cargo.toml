@@ -1,0 +1,20 @@
+[package]
+name = "tauri-plugin-android-bridge"
+description = "Android bridge for the Xindoze Canvas: foreground service, people, accessibility, takeover (SPEC 3.1, 4)."
+version.workspace = true
+edition.workspace = true
+rust-version = "1.90"
+license.workspace = true
+# tauri-plugin's build script uses `links` to hand the Kotlin library path to the app's tauri-build.
+links = "tauri-plugin-android-bridge"
+
+[dependencies]
+xz-types.workspace = true
+serde_json.workspace = true
+tauri = "2"
+
+[target.'cfg(target_os = "android")'.dependencies]
+async-trait.workspace = true
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
