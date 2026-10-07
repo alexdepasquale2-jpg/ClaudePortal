@@ -1,0 +1,165 @@
+# Xindoze model registry (SPEC §5). Data, not code: swap in better models freely.
+#
+# Each [[model]] entry:
+#   name        unique id used in profiles and settings
+#   roles       reflex | cortex | oracle | embed | vision
+#   tiers       device tiers this entry is a pick for: spore (<= 4 GB) | sprout (<= 12 GB) | apex
+#   license     SPDX id. Only OSI licenses (Apache-2.0, MIT, BSD-*) load by default;
+#               anything else loads only with allow_restricted = true.
+#   ollama      Ollama library tag (optional)
+#   gguf        {url, sha256, size_mb} for embedded llama.cpp (optional).
+#               sha256 stays empty until verified against the real file; never guess it.
+#   min_ram_mb  RAM needed to run the model at its listed quantization
+#   context     context length in tokens
+#   quant       quantization of the listed weights (optional)
+#   source      public model card (optional)
+#
+# File order is preference order: for a given role and tier, the first entry that
+# fits the device wins. Larger models are listed first so they win when RAM allows.
+
+allow_restricted = false
+
+[[model]]
+name = "qwen3-0.6b"
+roles = ["reflex"]
+tiers = ["spore"]
+license = "Apache-2.0"
+ollama = "qwen3:0.6b"
+min_ram_mb = 1024
+context = 32768
+quant = "Q8_0"
+source = "https://huggingface.co/Qwen/Qwen3-0.6B"
+gguf = { url = "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf", sha256 = "", size_mb = 640 }
+
+[[model]]
+name = "qwen3-30b-a3b"
+roles = ["cortex", "oracle"]
+tiers = ["apex"]
+license = "Apache-2.0"
+ollama = "qwen3:30b-a3b"
+min_ram_mb = 24576
+context = 32768
+quant = "Q4_K_M"
+source = "https://huggingface.co/Qwen/Qwen3-30B-A3B"
+gguf = { url = "https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF/resolve/main/Qwen3-30B-A3B-Q4_K_M.gguf", sha256 = "", size_mb = 18600 }
+
+[[model]]
+name = "mistral-small-24b"
+roles = ["cortex", "oracle"]
+tiers = ["apex"]
+license = "Apache-2.0"
+ollama = "mistral-small:24b"
+min_ram_mb = 20480
+context = 32768
+quant = "Q4_K_M"
+source = "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"
+
+[[model]]
+name = "qwen3-14b"
+roles = ["cortex"]
+tiers = ["apex"]
+license = "Apache-2.0"
+ollama = "qwen3:14b"
+min_ram_mb = 12288
+context = 32768
+quant = "Q4_K_M"
+source = "https://huggingface.co/Qwen/Qwen3-14B"
+gguf = { url = "https://huggingface.co/Qwen/Qwen3-14B-GGUF/resolve/main/Qwen3-14B-Q4_K_M.gguf", sha256 = "", size_mb = 9000 }
+
+[[model]]
+name = "qwen3-4b"
+roles = ["cortex"]
+tiers = ["sprout", "apex"]
+license = "Apache-2.0"
+ollama = "qwen3:4b"
+min_ram_mb = 4096
+context = 32768
+quant = "Q4_K_M"
+source = "https://huggingface.co/Qwen/Qwen3-4B"
+gguf = { url = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf", sha256 = "", size_mb = 2500 }
+
+[[model]]
+name = "phi-4-mini"
+roles = ["cortex"]
+tiers = ["sprout", "apex"]
+license = "MIT"
+ollama = "phi4-mini"
+min_ram_mb = 4096
+context = 131072
+quant = "Q4_K_M"
+source = "https://huggingface.co/microsoft/Phi-4-mini-instruct"
+
+[[model]]
+name = "qwen3-1.7b"
+roles = ["reflex", "cortex"]
+tiers = ["spore", "sprout", "apex"]
+license = "Apache-2.0"
+ollama = "qwen3:1.7b"
+min_ram_mb = 2048
+context = 32768
+quant = "Q8_0"
+source = "https://huggingface.co/Qwen/Qwen3-1.7B"
+gguf = { url = "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q8_0.gguf", sha256 = "", size_mb = 1830 }
+
+[[model]]
+name = "bge-m3"
+roles = ["embed"]
+tiers = ["apex"]
+license = "MIT"
+ollama = "bge-m3"
+min_ram_mb = 2048
+context = 8192
+source = "https://huggingface.co/BAAI/bge-m3"
+
+[[model]]
+name = "nomic-embed-text"
+roles = ["embed"]
+tiers = ["sprout"]
+license = "Apache-2.0"
+ollama = "nomic-embed-text"
+min_ram_mb = 1024
+context = 8192
+source = "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5"
+
+[[model]]
+name = "all-minilm-l6-v2"
+roles = ["embed"]
+tiers = ["spore"]
+license = "Apache-2.0"
+ollama = "all-minilm"
+min_ram_mb = 256
+context = 256
+source = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
+
+[[model]]
+name = "qwen2.5-vl-7b"
+roles = ["vision"]
+tiers = ["apex"]
+license = "Apache-2.0"
+ollama = "qwen2.5vl:7b"
+min_ram_mb = 8192
+context = 32768
+quant = "Q4_K_M"
+source = "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct"
+
+# No Ollama library tag; llama.cpp needs the matching mmproj file, which the registry does not track yet.
+[[model]]
+name = "smolvlm-500m"
+roles = ["vision"]
+tiers = ["sprout"]
+license = "Apache-2.0"
+min_ram_mb = 2048
+context = 8192
+source = "https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct"
+
+# Open weights under a custom license: hidden unless allow_restricted = true.
+[[model]]
+name = "gemma3-4b"
+roles = ["cortex", "vision"]
+tiers = ["sprout"]
+license = "LicenseRef-Gemma"
+ollama = "gemma3:4b"
+min_ram_mb = 4096
+context = 131072
+quant = "Q4_K_M"
+source = "https://huggingface.co/google/gemma-3-4b-it"
