@@ -9,6 +9,7 @@ pub mod error;
 pub mod journal;
 pub mod model;
 pub mod outcome;
+pub mod path;
 pub mod plan;
 pub mod taint;
 pub mod tool;

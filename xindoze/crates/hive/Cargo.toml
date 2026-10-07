@@ -1,0 +1,10 @@
+[package]
+name = "xz-hive"
+description = "Hive: encrypted peer-to-peer mesh of the user's devices (SPEC 3.12)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true

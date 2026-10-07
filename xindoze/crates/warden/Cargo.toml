@@ -1,0 +1,10 @@
+[package]
+name = "xz-warden"
+description = "Warden and Charter: deterministic policy enforcement (SPEC 3.4)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true

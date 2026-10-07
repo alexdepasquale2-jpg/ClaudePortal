@@ -124,6 +124,69 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
 
 [[package]]
+name = "xinod"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-bridge"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-core"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-cortex"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-darwin"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-engram"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-genome"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-hive"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
+name = "xz-senses"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
+]
+
+[[package]]
 name = "xz-types"
 version = "0.1.0"
 dependencies = [
@@ -131,6 +194,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "xz-warden"
+version = "0.1.0"
+dependencies = [
+ "xz-types",
 ]
 
 [[package]]

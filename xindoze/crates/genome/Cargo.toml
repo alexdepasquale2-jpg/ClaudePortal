@@ -1,0 +1,10 @@
+[package]
+name = "xz-genome"
+description = "Genome format: parse, validate, sign (SPEC 3.8, Appendix A)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true

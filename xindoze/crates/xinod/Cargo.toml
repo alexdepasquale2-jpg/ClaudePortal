@@ -1,0 +1,10 @@
+[package]
+name = "xinod"
+description = "xinod daemon and xz command-line Intent Bar."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true
