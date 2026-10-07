@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" role="img" aria-label="Empty Canvas pane">
+  <style>
+    .ink { stroke: #EDE8DF; fill: none; }
+    .glow { stroke: #2BF5C4; fill: none; }
+    .core { fill: #2BF5C4; }
+    .inkfill { fill: #EDE8DF; }
+    @media (prefers-color-scheme: light) {
+      .ink { stroke: #0B0D10; }
+      .glow { stroke: #0B8F72; }
+      .core { fill: #0B8F72; }
+      .inkfill { fill: #0B0D10; }
+    }
+  </style>
+  <rect class="ink" x="36" y="28" width="208" height="144" rx="18" stroke-width="1.5"/>
+  <path class="ink" d="M36 52h18M226 52h18M36 148h18M226 148h18" stroke-width="1.5" opacity="0.7"/>
+  <circle class="glow" cx="140" cy="104" r="40" stroke-width="1.6"/>
+  <g transform="translate(140 104) scale(0.18)" fill="none" stroke-linecap="round">
+    <path class="ink" d="M-118-198C48-96 36-36 0 0C-36 48-52 112-128 208" stroke-width="22"/>
+    <path class="ink" d="M118-198C-48-96-36-36 0 0C36 48 52 112 128 208" stroke-width="22"/>
+    <path class="glow" d="M-62-150l26-14M-14-96l22-8M-46 52l20 12M-70 104l22 14M62-150l-26-14M14-96l-22-8M46 52l-20 12M70 104l-22 14" stroke-width="6"/>
+    <circle class="inkfill" cx="0" cy="0" r="12"/>
+    <circle class="core" cx="0" cy="0" r="5"/>
+  </g>
+</svg>

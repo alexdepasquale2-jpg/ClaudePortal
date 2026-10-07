@@ -1,15 +1,12 @@
-<<<<<<< HEAD
 # Asset licences
 
 The Xindoze mark, launcher icons, splash artwork and Canvas icons are original.
 
 The wordmark letters are outlines of **Inter SemiBold**, Copyright 2016 The Inter Project Authors.
 Inter is under the SIL Open Font License 1.1. The licence text is
-`xindoze/assets/brand/OFL.txt`. The font file is not redistributed.
-=======
-# Third-party assets
+`xindoze/assets/brand/OFL.txt`. That copy does not redistribute the font file.
 
-Everything else under `xindoze/assets/` is original Xindoze work (Apache-2.0): wallpapers, boot screen, empty states, Pulse graphics, and the synthesized UI sounds. No samples or recordings. SIL OFL 1.1 does not restrict AI-assisted use.
+Canvas wallpapers, the boot screen, empty states, Pulse graphics, and the synthesized UI sounds are original Xindoze work (Apache-2.0). No samples or recordings. SIL OFL 1.1 does not restrict AI-assisted use.
 
 ## Inter 4.1
 
@@ -24,4 +21,3 @@ Everything else under `xindoze/assets/` is original Xindoze work (Apache-2.0): w
 - License: SIL Open Font License 1.1 (full text in `fonts/jetbrains-mono/OFL.txt`)
 - Files: `fonts/jetbrains-mono/JetBrainsMono-{Regular,Italic,Medium,MediumItalic,SemiBold,SemiBoldItalic,Bold,BoldItalic}.woff2`
 - Source: official release v2.304, `fonts/webfonts/`, unmodified
->>>>>>> a3ff799 (Bundle Inter and JetBrains Mono for offline Canvas type.)

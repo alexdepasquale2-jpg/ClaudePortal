@@ -1,6 +1,10 @@
 <!-- Pulse: models loaded, tokens per second, Hive peers and egress (SPEC §3.11). -->
 <script lang="ts">
   import { shell } from '../lib/shell.svelte';
+  import egressIdle from '../../../../assets/canvas/pulse/egress-idle.svg';
+  import egressActive from '../../../../assets/canvas/pulse/egress-active.svg';
+  import egressAlert from '../../../../assets/canvas/pulse/egress-alert.svg';
+  import modelShimmer from '../../../../assets/canvas/pulse/model-shimmer.svg';
 
   const p = $derived(shell.pulse);
   const time = (ms: number) =>
@@ -10,10 +14,17 @@
 <section class="panel block" aria-labelledby="pulse-title">
   <h2 id="pulse-title" class="eyebrow">Pulse</h2>
   {#if !p}
+    <img src={egressIdle} alt="" width="22" height="22" />
+    <img class="shimmer" src={modelShimmer} alt="" width="220" height="12" />
     <p class="muted">Reading the runtime…</p>
   {:else}
     <div class="zero" class:out={p.egress.length > 0}>
-      <span class="dot {p.egress.length ? 'alert' : 'good'}" aria-hidden="true"></span>
+      <img
+        src={p.egress.length ? egressAlert : egressActive}
+        alt=""
+        width="28"
+        height="28"
+      />
       <div>
         <p class="big">{p.egress.length ? 'Data left this device' : 'Zero egress'}</p>
         <p class="muted small">
@@ -53,6 +64,9 @@
     <p class="muted small">{p.host} · {p.tier} tier</p>
 
     <h3 class="sub">Models</h3>
+    {#if p.models.some((m) => !m.loaded)}
+      <img class="shimmer" src={modelShimmer} alt="" width="220" height="12" />
+    {/if}
     <ul class="rows">
       {#each p.models as m (m.role + m.model)}
         <li>
@@ -117,6 +131,12 @@
 
   .big {
     font-weight: 650;
+  }
+
+  .shimmer {
+    width: 100%;
+    max-width: 280px;
+    height: 12px;
   }
 
   .stats {

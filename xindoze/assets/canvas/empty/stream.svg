@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" role="img" aria-label="Empty Stream">
+  <style>
+    .ink { stroke: #EDE8DF; fill: none; }
+    .glow { stroke: #2BF5C4; fill: none; }
+    .core { fill: #2BF5C4; }
+    .inkfill { fill: #EDE8DF; }
+    @media (prefers-color-scheme: light) {
+      .ink { stroke: #0B0D10; }
+      .glow { stroke: #0B8F72; }
+      .core { fill: #0B8F72; }
+      .inkfill { fill: #0B0D10; }
+    }
+  </style>
+  <path class="ink" d="M150 16C112 46 176 62 142 96C108 130 176 148 148 188" stroke-width="1.4" opacity="0.45"/>
+  <circle class="ink" cx="128" cy="42" r="12" stroke-width="1.5"/>
+  <circle class="glow" cx="142" cy="100" r="36" stroke-width="1.6"/>
+  <g transform="translate(142 100) scale(0.2)" fill="none" stroke-linecap="round">
+    <path class="ink" d="M-118-198C48-96 36-36 0 0C-36 48-52 112-128 208" stroke-width="22"/>
+    <path class="ink" d="M118-198C-48-96-36-36 0 0C36 48 52 112 128 208" stroke-width="22"/>
+    <path class="glow" d="M-62-150l26-14M-14-96l22-8M-46 52l20 12M-70 104l22 14M62-150l-26-14M14-96l-22-8M46 52l-20 12M70 104l-22 14" stroke-width="6"/>
+    <circle class="inkfill" cx="0" cy="0" r="12"/>
+    <circle class="core" cx="0" cy="0" r="5"/>
+  </g>
+  <circle class="ink" cx="158" cy="164" r="9" stroke-width="1.5"/>
+  <circle class="core" cx="186" cy="74" r="2.4" opacity="0.9"/>
+  <circle class="core" cx="104" cy="132" r="1.7" opacity="0.7"/>
+</svg>

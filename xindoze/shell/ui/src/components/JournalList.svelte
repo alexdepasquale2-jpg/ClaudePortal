@@ -1,6 +1,7 @@
 <!-- The newest Journal events: every tool call, allowed or not. -->
 <script lang="ts">
   import { shell } from '../lib/shell.svelte';
+  import journalEmpty from '../../../../assets/canvas/empty/journal.svg';
   import Verdict from './Verdict.svelte';
 
   const time = (ms: number) =>
@@ -14,6 +15,7 @@
 <section class="panel block" aria-labelledby="journal-title">
   <h2 id="journal-title" class="eyebrow">Journal</h2>
   {#if shell.journal.length === 0}
+    <img class="empty-art" src={journalEmpty} alt="" width="180" height="129" />
     <p class="muted small">No actions yet.</p>
   {:else}
     <ol class="events">
@@ -61,6 +63,11 @@
   .summary {
     flex-basis: 100%;
     color: var(--muted);
+  }
+
+  .empty-art {
+    justify-self: center;
+    margin-top: 4px;
   }
 
   .rewound .summary,

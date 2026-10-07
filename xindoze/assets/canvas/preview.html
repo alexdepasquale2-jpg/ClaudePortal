@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Xindoze canvas art</title>
+    <link rel="stylesheet" href="../fonts/fonts.css" />
+    <style>
+      html, body { margin: 0; background: #0b0d10; color: #ede8df; }
+      body { font-family: "Inter Variable", Inter, sans-serif; padding: 28px 32px 48px; }
+      h1 { font-weight: 560; font-size: 28px; letter-spacing: -0.03em; margin: 0 0 4px; }
+      p.sub { margin: 0 0 22px; color: #a29d94; }
+      h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #a29d94; font-weight: 600; margin: 22px 0 10px; }
+      .row { display: flex; gap: 12px; align-items: stretch; }
+      figure { margin: 0; flex: 1; }
+      figcaption { font-size: 12px; color: #a29d94; margin-top: 6px; }
+      img.wall { width: 100%; height: auto; display: block; border-radius: 10px; }
+      .boot { width: 100%; height: auto; border-radius: 12px; background: #0b0d10; }
+      .cards { display: flex; gap: 12px; }
+      .card { background: #13161b; border: 1px solid #2a2f37; border-radius: 12px; padding: 16px; text-align: center; }
+      .card.light { background: #ede8df; color: #0b0d10; }
+      .card img { width: 200px; height: auto; }
+      .pulse { display: flex; gap: 18px; align-items: center; background: #13161b; border-radius: 12px; padding: 16px 20px; }
+      .pulse img { width: 64px; height: 64px; }
+      .shimmer { width: 280px; height: 16px; }
+      .type { font-size: 22px; margin: 8px 0; }
+      .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>Xindoze</h1>
+    <p class="sub">Canvas art · Obsidian, Bone, Ember, Biolume</p>
+    <h2>Wallpaper</h2>
+    <div class="row">
+      <figure>
+        <img class="wall" src="wallpaper-dark-1920x1080.png" alt="Dark wallpaper" />
+        <figcaption>Dark · 1920×1080</figcaption>
+      </figure>
+      <figure>
+        <img class="wall" src="wallpaper-light-1920x1080.png" alt="Light wallpaper" />
+        <figcaption>Light · Bone field</figcaption>
+      </figure>
+    </div>
+    <h2>Boot</h2>
+    <img class="boot" src="boot/boot.svg" alt="Xindoze has evolved." />
+    <h2>Empty states</h2>
+    <div class="cards">
+      <div class="card"><img src="empty/stream.svg" alt="" /><figcaption>Stream</figcaption></div>
+      <div class="card"><img src="empty/canvas.svg" alt="" /><figcaption>Canvas</figcaption></div>
+      <div class="card"><img src="empty/journal.svg" alt="" /><figcaption>Journal</figcaption></div>
+    </div>
+    <h2>Pulse</h2>
+    <div class="pulse">
+      <img src="pulse/egress-idle.svg" alt="Idle" />
+      <img src="pulse/egress-active.svg" alt="Active" />
+      <img src="pulse/egress-alert.svg" alt="Alert" />
+      <img class="shimmer" src="pulse/model-shimmer.svg" alt="Loading" />
+    </div>
+    <h2>Type</h2>
+    <p class="type">Inter — Xindoze has evolved.</p>
+    <p class="mono">JetBrains Mono — engram.kv.write</p>
+  </body>
+</html>
