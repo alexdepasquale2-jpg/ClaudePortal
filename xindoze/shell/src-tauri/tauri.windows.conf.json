@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "mainBinaryName": "xindoze-canvas",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Xindoze",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 360,
+        "minHeight": 640,
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["nsis"],
+    "resources": {
+      "../../genomes/": "genomes/"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "perMachine"
+      }
+    }
+  }
+}

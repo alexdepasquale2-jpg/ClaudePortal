@@ -1,8 +1,10 @@
 //! The seam between the Canvas and the Xindoze runtime.
 //!
-//! Every Tauri command goes through [`ShellRuntime`]. Today the shell runs
-//! [`crate::demo::DemoRuntime`]; the core wave adds a `CoreRuntime` adapter
-//! over `xz-core` and swaps it in at one line in `lib.rs`.
+//! Every Tauri command goes through [`ShellRuntime`]. The desktop shell
+//! implements it with [`crate::core_runtime::CoreRuntime`] over `xinod`'s session.
+
+pub const EVENT_ASK: &str = "xz://ask";
+pub const EVENT_STEP: &str = "xz://step";
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -27,6 +29,10 @@ pub trait ShellRuntime: Send + Sync {
     /// Newest events first.
     async fn journal(&self, limit: usize) -> Result<Vec<JournalEvent>, XzError>;
     async fn charter(&self) -> Result<CharterView, XzError>;
+    /// Answer an `xz://ask` card.
+    async fn confirm_reply(&self, id: &str, approve: bool) -> Result<(), XzError>;
+    /// Resolve a local blob ref to a `data:image/...` URL, or an empty string.
+    async fn blob(&self, reference: &str) -> Result<String, XzError>;
     /// Steps as they happen, forwarded to the UI as `xz://step`.
     fn subscribe_steps(&self) -> broadcast::Receiver<StepEvent>;
 }
@@ -116,4 +122,14 @@ pub enum RuleDecision {
     Allow,
     Ask,
     Deny,
+}
+
+/// Guest / Overlay / Takeover as the Canvas switch reads it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConquestView {
+    /// False on Android, where HOME-launcher Takeover belongs to that track.
+    pub supported: bool,
+    pub mode: String,
+    /// How to leave Takeover without the Canvas (hotkey and command).
+    pub undo: String,
 }

@@ -29,7 +29,20 @@ tracing.workspace = true
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
 tauri = { version = "~2.11.6", features = ["tray-icon"] }
 tauri-plugin-android-bridge = { path = "../plugins/android-bridge" }
+xinod = { path = "../../crates/xinod" }
+xz-core = { path = "../../crates/core" }
+xz-engram = { path = "../../crates/engram" }
+xz-genome = { path = "../../crates/genome" }
+xz-warden = { path = "../../crates/warden" }
+base64 = "0.22"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
+open = "5"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+
+[dev-dependencies]
+tempfile.workspace = true

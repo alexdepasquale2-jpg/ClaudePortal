@@ -124,12 +124,13 @@ mod tests {
     }
 }
 
-/// Home directory: `XZ_HOME`, otherwise the process home.
+/// Home directory: `XZ_HOME`, otherwise the process home (`USERPROFILE` on Windows).
 pub fn home_dir() -> Result<PathBuf> {
     if let Ok(home) = std::env::var("XZ_HOME") {
         return Ok(PathBuf::from(home));
     }
     std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
         .map(PathBuf::from)
         .map_err(|_| XzError::InvalidArgs("set XZ_HOME or HOME".into()))
 }

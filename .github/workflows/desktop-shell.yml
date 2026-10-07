@@ -1,0 +1,35 @@
+name: desktop-shell
+
+on:
+  push:
+    paths:
+      - "xindoze/shell/**"
+      - "xindoze/Cargo.toml"
+      - "xindoze/Cargo.lock"
+      - ".github/workflows/desktop-shell.yml"
+  pull_request:
+    paths:
+      - "xindoze/shell/**"
+      - "xindoze/Cargo.toml"
+      - "xindoze/Cargo.lock"
+      - ".github/workflows/desktop-shell.yml"
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: WebKitGTK and Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev patchelf pkg-config
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Canvas UI
+        working-directory: xindoze/shell/ui
+        run: npm ci && npm run build
+      - name: Build xindoze-shell
+        working-directory: xindoze
+        run: cargo build -p xindoze-shell

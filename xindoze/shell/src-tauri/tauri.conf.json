@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../ui/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "sh -c 'cd ../ui && npm run dev'",
-    "beforeBuildCommand": "sh -c 'cd ../ui && npm run build'"
+    "beforeDevCommand": "npm --prefix ui run dev",
+    "beforeBuildCommand": "npm --prefix ui run build"
   },
   "app": {
     "windows": [
@@ -42,11 +42,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "windows": {
-      "nsis": {
-        "installMode": "currentUser"
-      }
-    },
     "android": {
       "minSdkVersion": 29
     }

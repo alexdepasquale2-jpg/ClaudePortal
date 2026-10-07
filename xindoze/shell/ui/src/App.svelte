@@ -7,6 +7,7 @@
   import { onMount } from 'svelte';
   import { shell, type View } from './lib/shell.svelte';
   import AskDock from './components/AskDock.svelte';
+  import BootScreen from './components/BootScreen.svelte';
   import CanvasPane from './components/CanvasPane.svelte';
   import CharterList from './components/CharterList.svelte';
   import EgressBadge from './components/EgressBadge.svelte';
@@ -14,6 +15,7 @@
   import IntentBar from './components/IntentBar.svelte';
   import JournalList from './components/JournalList.svelte';
   import Logo from './components/Logo.svelte';
+  import ConquestPanel from './components/ConquestPanel.svelte';
   import PulsePanel from './components/PulsePanel.svelte';
   import Stream from './components/Stream.svelte';
 
@@ -59,6 +61,7 @@
 
   <aside class="system-col" class:active={shell.view === 'system'} aria-label="System">
     <PulsePanel />
+    <ConquestPanel />
     <GenomesList />
     <CharterList />
     <JournalList />
@@ -70,6 +73,7 @@
   </div>
 
   <p class="sr-only" role="status" aria-live="polite">{shell.announcement}</p>
+  <BootScreen />
 </div>
 
 <style>
