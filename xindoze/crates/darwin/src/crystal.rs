@@ -8,7 +8,9 @@
 //! out of the intent. Other JSON stays literal. Five successful traces with
 //! the same organism, the same tool sequence, and the same skeleton promote
 //! one crystal. `try_run` fills the holes from a new intent and invokes the
-//! tools. Alignment failure is a miss (`None`); a tool error is `Some(Err)`.
+//! tools. Alignment failure is a miss (`None`); a tool error is `Some(Err)`
+//! and flags that crystal for re-evolution. [`Crystal::source`] and [`diff`]
+//! render the plan as text. They do not run JavaScript.
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -135,6 +137,8 @@ pub struct MemoryCrystalCache {
 struct State {
     buckets: Vec<Bucket>,
     crystals: Vec<Crystal>,
+    /// Crystal ids whose last fast-path run hit a tool error.
+    flagged: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -194,6 +198,7 @@ impl MemoryCrystalCache {
             inner: Mutex::new(State {
                 buckets: Vec::new(),
                 crystals: Vec::new(),
+                flagged: Vec::new(),
             }),
         }
     }
@@ -201,6 +206,19 @@ impl MemoryCrystalCache {
     /// Crystals promoted so far, oldest first.
     pub fn crystals(&self) -> Vec<Crystal> {
         self.lock().crystals.clone()
+    }
+
+    /// Crystals flagged for re-evolution after a tool error, first failure first.
+    /// The crystal stays in the cache; the caller still takes the fluid path.
+    pub fn flagged(&self) -> Vec<String> {
+        self.lock().flagged.clone()
+    }
+
+    fn note_failure(&self, crystal_id: &str) {
+        let mut state = self.lock();
+        if !state.flagged.iter().any(|id| id == crystal_id) {
+            state.flagged.push(crystal_id.to_string());
+        }
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, State> {
@@ -233,14 +251,16 @@ impl CrystalCache for MemoryCrystalCache {
 
         let mut steps = Vec::with_capacity(prepared.calls.len());
         for call in prepared.calls {
-            // TODO(phase 3): a failed postcondition flags the crystal for re-evolution.
             match tools.invoke(call.clone()).await {
                 Ok(output) => steps.push(TraceStep {
                     call,
                     ok: true,
                     output: output.content,
                 }),
-                Err(err) => return Some(Err(err)),
+                Err(err) => {
+                    self.note_failure(&prepared.crystal_id);
+                    return Some(Err(err));
+                }
             }
         }
         Some(Ok(CrystalRun {
@@ -876,6 +896,140 @@ fn fill(template: &TemplateValue, values: &[String]) -> Option<Value> {
     })
 }
 
+impl Crystal {
+    /// The plan as diffable text. This is the template, not a QuickJS program.
+    pub fn source(&self) -> String {
+        let mut lines = vec![
+            format!("version: {}", self.version),
+            format!("id: {}", self.crystal_id),
+            format!("organism: {}", self.organism),
+            format!("intent: {}", self.plan.intent),
+            format!("pattern: {}", render_pattern(&self.plan.pattern)),
+        ];
+        for (id, slot) in self.plan.slots.iter().enumerate() {
+            lines.push(format!("slot {id}: {slot}"));
+        }
+        for step in &self.plan.steps {
+            lines.push(format!(
+                "step: {} {}",
+                step.tool,
+                render_template(&step.args)
+            ));
+        }
+        if let Some(say) = &self.plan.say {
+            lines.push(format!("say: {}", render_parts(&say.parts)));
+        }
+        if let Some(ui) = &self.plan.ui {
+            lines.push(format!("ui: {}", render_template(ui)));
+        }
+        lines.join("\n")
+    }
+}
+
+/// Line diff of two crystals' [`Crystal::source`] text.
+pub fn diff(before: &Crystal, after: &Crystal) -> String {
+    format!(
+        "--- {}\n+++ {}\n{}",
+        before.crystal_id,
+        after.crystal_id,
+        line_diff(&before.source(), &after.source())
+    )
+}
+
+fn render_pattern(pattern: &[PatternToken]) -> String {
+    pattern
+        .iter()
+        .map(|token| match token {
+            PatternToken::Word { text } => text.clone(),
+            PatternToken::Slot { id, .. } => format!("{{{id}}}"),
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn render_parts(parts: &[TextPart]) -> String {
+    let mut out = String::new();
+    for part in parts {
+        match part {
+            TextPart::Lit { text } => out.push_str(text),
+            TextPart::Slot { id } => out.push_str(&format!("{{{id}}}")),
+        }
+    }
+    out
+}
+
+fn render_template(value: &TemplateValue) -> String {
+    match value {
+        TemplateValue::Null => "null".to_string(),
+        TemplateValue::Bool { value } => value.to_string(),
+        TemplateValue::Number { value } => value.to_string(),
+        TemplateValue::String { value } => {
+            serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string())
+        }
+        TemplateValue::Slot { id } => format!("{{{id}}}"),
+        TemplateValue::Text { parts } => render_parts(parts),
+        TemplateValue::Array { items } => {
+            let inner = items
+                .iter()
+                .map(render_template)
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("[{inner}]")
+        }
+        TemplateValue::Object { fields } => {
+            let inner = fields
+                .iter()
+                .map(|field| {
+                    let name = serde_json::to_string(&field.name).unwrap_or_default();
+                    format!("{name}:{}", render_template(&field.value))
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{{inner}}}")
+        }
+    }
+}
+
+fn line_diff(before: &str, after: &str) -> String {
+    let left: Vec<&str> = before.lines().collect();
+    let right: Vec<&str> = after.lines().collect();
+    let mut score = vec![vec![0usize; right.len() + 1]; left.len() + 1];
+    for i in (0..left.len()).rev() {
+        for j in (0..right.len()).rev() {
+            score[i][j] = if left[i] == right[j] {
+                score[i + 1][j + 1] + 1
+            } else {
+                score[i + 1][j].max(score[i][j + 1])
+            };
+        }
+    }
+    let mut i = 0;
+    let mut j = 0;
+    let mut lines = Vec::new();
+    while i < left.len() && j < right.len() {
+        if left[i] == right[j] {
+            lines.push(format!(" {}", left[i]));
+            i += 1;
+            j += 1;
+        } else if score[i + 1][j] >= score[i][j + 1] {
+            lines.push(format!("-{}", left[i]));
+            i += 1;
+        } else {
+            lines.push(format!("+{}", right[j]));
+            j += 1;
+        }
+    }
+    while i < left.len() {
+        lines.push(format!("-{}", left[i]));
+        i += 1;
+    }
+    while j < right.len() {
+        lines.push(format!("+{}", right[j]));
+        j += 1;
+    }
+    lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{align, *};
@@ -1295,5 +1449,47 @@ mod tests {
         );
         assert_eq!(align(&pattern, "send goodbye to bob please"), None);
         assert_eq!(align(&pattern, "please send goodbye to bob"), None);
+    }
+
+    #[tokio::test]
+    async fn a_tool_error_flags_the_crystal_and_keeps_it() {
+        let cache = MemoryCrystalCache::new();
+        observe_reads(&cache, 5).await;
+        let id = cache.crystals()[0].crystal_id.clone();
+        assert!(cache.flagged().is_empty());
+
+        let failed = cache
+            .try_run("notes", "read zed.txt", &Mock::failing(0))
+            .await;
+        assert!(matches!(failed, Some(Err(_))));
+        assert_eq!(cache.flagged(), vec![id.clone()]);
+
+        let _ = cache
+            .try_run("notes", "read zed.txt", &Mock::failing(0))
+            .await;
+        assert_eq!(cache.flagged(), vec![id]);
+
+        let ok = cache
+            .try_run("notes", "read zed.txt", &Mock::new(vec![json!(1)]))
+            .await;
+        assert!(matches!(ok, Some(Ok(_))));
+        assert_eq!(cache.crystals().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn source_and_diff_show_the_plan() {
+        let cache = MemoryCrystalCache::new();
+        observe_reads(&cache, 5).await;
+        let crystal = &cache.crystals()[0];
+        let text = crystal.source();
+        assert!(text.contains("step: fs.read"), "{text}");
+        assert!(text.contains("{0}"), "{text}");
+        assert!(text.contains("intent: read f0.txt"), "{text}");
+
+        let mut other = crystal.clone();
+        other.plan.intent = "read other.txt".into();
+        let delta = diff(crystal, &other);
+        assert!(delta.contains("-intent: read f0.txt"), "{delta}");
+        assert!(delta.contains("+intent: read other.txt"), "{delta}");
     }
 }

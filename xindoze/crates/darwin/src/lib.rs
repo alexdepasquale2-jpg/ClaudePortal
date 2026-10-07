@@ -14,6 +14,6 @@ mod promote;
 
 pub use crystal::{
     Crystal, Field, MemoryCrystalCache, PatternToken, PlanTemplate, RUNS_TO_PROMOTE, StepTemplate,
-    TEMPLATE_VERSION, TemplateValue, TextPart, TextTemplate,
+    TEMPLATE_VERSION, TemplateValue, TextPart, TextTemplate, diff,
 };
 pub use promote::{Champion, Reject, Score, promote};
