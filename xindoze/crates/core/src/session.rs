@@ -118,6 +118,31 @@ impl Session {
         &self.warden
     }
 
+    /// Folds a peer's journal into this device.
+    ///
+    /// [`xz_hive::merge_events`] keeps the first copy of each `(device, seq)`.
+    /// New rows are stored with [`Engram::merge_remote`]. The same batch a
+    /// second time adds nothing.
+    pub fn merge_peer_journal(&self, remote: &[xz_types::JournalEvent]) -> Result<usize> {
+        let mut devices: Vec<&str> = remote.iter().map(|event| event.device.as_str()).collect();
+        devices.sort_unstable();
+        devices.dedup();
+        let mut local = Vec::new();
+        for device in devices {
+            local.extend(self.engram.events_since(device, 0)?);
+        }
+        let merged = xz_hive::merge_events(&local, remote);
+        let fresh = merged
+            .into_iter()
+            .filter(|event| {
+                !local
+                    .iter()
+                    .any(|have| have.device == event.device && have.seq == event.seq)
+            })
+            .collect();
+        self.engram.merge_remote(fresh)
+    }
+
     /// Recent journal rows, newest last.
     pub fn journal(&self, limit: usize) -> Result<Vec<xz_types::JournalEvent>> {
         let mut events = self.engram.events(&xz_engram::EventQuery {
@@ -406,7 +431,7 @@ mod tests {
     use std::sync::Arc;
     use xz_cortex::Cortex;
     use xz_engram::RewindSelector;
-    use xz_types::{AlwaysYes, Risk, ToolSpec};
+    use xz_types::{AlwaysYes, Risk, Taint, ToolSpec, Verdict};
     use xz_warden::Request;
 
     use crate::reflex::OfflineReflex;
@@ -617,5 +642,42 @@ mod tests {
                 .any(|step| step.tool == "hive.peers" && step.ok)
         );
         assert_eq!(fast.say.as_deref(), Some("No devices are paired."));
+    }
+
+    #[tokio::test]
+    async fn a_peer_journal_merges_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let session = session(&home);
+        let remote = xz_types::JournalEvent {
+            seq: 1,
+            device: "phone".into(),
+            ts_ms: 1,
+            organism: "xindoze.notes".into(),
+            task_id: "remote-1".into(),
+            tool: "hive.sync".into(),
+            args: json!({}),
+            risk: Risk::Observe,
+            verdict: Verdict::Allowed,
+            taint: Taint::none(),
+            ok: true,
+            summary: "note from the phone".into(),
+            effects: vec![],
+            rewound: false,
+        };
+        assert_eq!(
+            session
+                .merge_peer_journal(std::slice::from_ref(&remote))
+                .unwrap(),
+            1
+        );
+        assert_eq!(session.merge_peer_journal(&[remote]).unwrap(), 0);
+        let journal = session.journal(20).unwrap();
+        assert!(
+            journal
+                .iter()
+                .any(|event| event.summary == "note from the phone")
+        );
     }
 }
