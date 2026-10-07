@@ -8,7 +8,7 @@
 //! - Canvas switch back to Guest
 //! - tray item "Undo takeover"
 //! - hotkey Ctrl+Alt+Shift+X
-//! - `xindoze-shell --undo-takeover`
+//! - `xindoze-canvas --undo-takeover`
 //! - after uninstall, delete the hook described by [`UNDO_TEXT`]
 
 use std::path::{Path, PathBuf};
@@ -18,7 +18,7 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 
 use crate::runtime::ConquestView;
 
-pub const UNDO_TEXT: &str = "Ctrl+Alt+Shift+X, the Canvas Guest switch, the tray item, or `xindoze-shell --undo-takeover`. After uninstall on Windows: reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Xindoze /f. After uninstall on Linux: rm ~/.config/autostart/org.xindoze.shell.desktop";
+pub const UNDO_TEXT: &str = "Ctrl+Alt+Shift+X, the Canvas Guest switch, the tray item, or `xindoze-canvas --undo-takeover`. After uninstall on Windows: reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Xindoze /f. After uninstall on Linux: rm ~/.config/autostart/org.xindoze.shell.desktop";
 
 /// Per-user Run key. Not Winlogon.
 pub const WINDOWS_RUN_SUBKEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
