@@ -9,7 +9,7 @@ Palette from SPEC §14.
 | Ember | `#FF5A1F` | One chromatid (revolution) |
 | Biolume | `#2BF5C4` | The other chromatid (evolution) |
 
-The mark is an X drawn as a chromosome: two chromatids joined at the centre. Ember takes the left chromatid, Biolume the right. A Bone bead is the centromere. Bands are gaps in the arms and stay off the join. At 32 px and below the bands and the bead drop out and the arms get thicker (`logo-small.svg`, `mark-small.svg`).
+The mark is an X drawn as a chromosome: two chromatids joined at the centre. Ember takes the left chromatid, Biolume the right, both at full saturation. A Bone bead is the centromere. Bands are thin opaque lines and are omitted below 128 px. At 32 px and below the bead also drops out and the arms get thicker (`logo-small.svg`, `mark-small.svg`).
 
 ## Files
 

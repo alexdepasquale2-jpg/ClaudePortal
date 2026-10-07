@@ -7,11 +7,12 @@ Requires Pillow and CairoSVG. Inter SemiBold (OFL) is used only to outline the w
 from __future__ import annotations
 
 import io
+import re
 import struct
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 import cairosvg
 
 ROOT = Path(__file__).resolve().parent
@@ -23,9 +24,20 @@ OBSIDIAN = (11, 13, 16, 255)  # #0B0D10
 SMALL_AT = 32  # inclusive: this size and below use logo-small.svg
 
 
-def render_svg(path: Path, size: int) -> Image.Image:
-    png = cairosvg.svg2png(url=str(path), output_width=size, output_height=size)
+def svg_text(path: Path, drop_bands: bool) -> str:
+    text = path.read_text()
+    if drop_bands:
+        text = re.sub(r'<g id="bands"[\s\S]*?</g>\s*', "", text)
+    return text
+
+
+def render_text(text: str, size: int) -> Image.Image:
+    png = cairosvg.svg2png(bytestring=text.encode(), output_width=size, output_height=size)
     return Image.open(io.BytesIO(png)).convert("RGBA")
+
+
+def render_svg(path: Path, size: int, drop_bands: bool = False) -> Image.Image:
+    return render_text(svg_text(path, drop_bands), size)
 
 
 def render_svg_box(path: Path, width: int, height: int) -> Image.Image:
@@ -112,12 +124,11 @@ def png_bytes(im: Image.Image) -> bytes:
 
 
 def tile_for(size: int) -> Image.Image:
-    src = BRAND / ("logo-small.svg" if size <= SMALL_AT else "logo.svg")
-    # Supersample tiny sizes so the curves stay smooth, then downscale.
+    # Bands are thin and crisp at 128 px and up. Below that they smear, so they go.
     if size <= SMALL_AT:
-        big = render_svg(src, max(size * 4, 128))
+        big = render_svg(BRAND / "logo-small.svg", max(size * 4, 128))
         return big.resize((size, size), Image.Resampling.LANCZOS)
-    return render_svg(src, size)
+    return render_svg(BRAND / "logo.svg", size, drop_bands=size < 128)
 
 
 def splash_svg(width: int, height: int) -> str:
@@ -366,64 +377,68 @@ def assert_sizes() -> None:
 
 
 def contact_sheet() -> None:
-    """Launcher sizes, the splash, the wordmark and the Canvas icon set."""
-    sheet = Image.new("RGB", (1400, 1480), (11, 13, 16))
-    draw = ImageDraw.Draw(sheet)
-    draw.text((32, 24), "Xindoze  launcher, splash, wordmark, canvas icons", fill=(237, 232, 223))
-
+    """Launcher sizes, the splash, the wordmark and the Canvas icon set, without overlapping labels."""
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
+    bone = (237, 232, 223)
+    muted = (162, 157, 148)
     tiles = [
-        (ICONS / "icon.png", 256),
-        (ICONS / "128x128.png", 128),
-        (ICONS / "32x32.png", 64),
-        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher.png", 192),
-        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher_round.png", 192),
-        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher_foreground.png", 220),
+        (ICONS / "icon.png", 200, "icon.png"),
+        (ICONS / "128x128.png", 128, "128"),
+        (ICONS / "32x32.png", 64, "32"),
+        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher.png", 160, "launcher"),
+        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher_round.png", 160, "round"),
+        (ICONS / "android" / "mipmap-xxxhdpi" / "ic_launcher_foreground.png", 180, "foreground"),
     ]
-    x = 32
-    y = 70
-    for path, box in tiles:
+    icon_dir = REPO / "shell" / "ui" / "src" / "lib" / "icons"
+    names = sorted(p.stem for p in icon_dir.glob("*.svg"))
+    cols = 7
+    icon_rows = (len(names) + cols - 1) // cols
+    splash_h = 640
+    width = 1500
+    height = 56 + 250 + 36 + splash_h + 48 + icon_rows * 92 + 24
+    sheet = Image.new("RGB", (width, height), (11, 13, 16))
+    draw = ImageDraw.Draw(sheet)
+    draw.text((32, 18), "Xindoze launcher, splash, wordmark, canvas icons", fill=bone, font=font)
+
+    x, y = 32, 52
+    for path, box, label in tiles:
         im = Image.open(path).convert("RGBA")
         im.thumbnail((box, box), Image.Resampling.LANCZOS)
-        frame = Image.new("RGBA", (box, box), (0, 0, 0, 0))
-        frame.paste(im, ((box - im.width) // 2, (box - im.height) // 2), im)
-        # Checker under the foreground so the safe-zone padding is visible.
         if "foreground" in path.name:
-            checker = Image.new("RGBA", (box, box), (26, 30, 36, 255))
-            sheet.paste(checker, (x, y))
-        sheet.paste(frame, (x, y), frame)
-        draw.text((x, y + box + 6), path.name, fill=(162, 157, 148))
-        x += box + 28
-        if x > 1180:
-            x = 32
-            y += box + 48
+            sheet.paste(Image.new("RGB", (box, box), (26, 30, 36)), (x, y))
+        ox = x + (box - im.width) // 2
+        oy = y + (box - im.height) // 2
+        sheet.paste(im, (ox, oy), im)
+        draw.text((x, y + box + 6), label, fill=muted, font=font)
+        x += box + 36
 
+    splash_top = 52 + 200 + 48
     splash = Image.open(BRAND / "splash" / "splash-1080x2400.png").convert("RGB")
-    splash.thumbnail((220, 480), Image.Resampling.LANCZOS)
-    sheet.paste(splash, (32, 520))
-    draw.text((32, 520 + splash.height + 8), "splash 1080x2400", fill=(162, 157, 148))
+    splash.thumbnail((288, splash_h - 28), Image.Resampling.LANCZOS)
+    sheet.paste(splash, (32, splash_top))
+    draw.text((32, splash_top + splash.height + 6), "splash 1080x2400", fill=muted, font=font)
 
     word = BRAND / "wordmark.svg"
     if word.is_file():
-        png = cairosvg.svg2png(url=str(word), output_width=980)
+        png = cairosvg.svg2png(url=str(word), output_width=1000)
         im = Image.open(io.BytesIO(png)).convert("RGBA")
-        sheet.paste(im, (280, 560), im)
+        sheet.paste(im, (360, splash_top + 40), im)
 
-    icon_dir = REPO / "shell" / "ui" / "src" / "lib" / "icons"
-    names = sorted(p.stem for p in icon_dir.glob("*.svg"))
-    draw.text((32, 760), "canvas icons  24 px grid, currentColor", fill=(237, 232, 223))
-    x, y = 32, 800
-    for name in names:
-        png = cairosvg.svg2png(url=str(icon_dir / f"{name}.svg"), output_width=48, output_height=48)
+    grid_top = splash_top + splash_h
+    draw.text((32, grid_top), "canvas icons", fill=bone, font=font)
+    x, y = 32, grid_top + 32
+    for i, name in enumerate(names):
+        png = cairosvg.svg2png(url=str(icon_dir / f"{name}.svg"), output_width=40, output_height=40)
         im = Image.open(io.BytesIO(png)).convert("RGBA")
-        # Bone ink so the strokes show on Obsidian.
-        solid = Image.new("RGBA", im.size, (237, 232, 223, 255))
+        solid = Image.new("RGBA", im.size, bone + (255,))
         solid.putalpha(im.getchannel("A"))
-        sheet.paste(solid, (x, y), solid)
-        draw.text((x, y + 50), name, fill=(162, 157, 148))
-        x += 120
-        if x > 1280:
+        col = i % cols
+        if col == 0 and i:
+            y += 92
             x = 32
-            y += 96
+        sheet.paste(solid, (x, y), solid)
+        draw.text((x, y + 44), name, fill=muted, font=font)
+        x += 200
 
     save_png(sheet.convert("RGBA"), BRAND / "preview.png")
 
@@ -480,12 +495,18 @@ def main() -> None:
         "xxxhdpi": (192, 432),
     }
     # Square bleed (no baked corner radius) so the mask owns the shape.
-    bleed = Image.new("RGBA", (1024, 1024), OBSIDIAN)
-    mark = render_svg(BRAND / "mark.svg", 1024)
-    bleed.paste(mark, (0, 0), mark)
+    def bleed_for(drop_bands: bool) -> Image.Image:
+        canvas = Image.new("RGBA", (1024, 1024), OBSIDIAN)
+        mark = render_svg(BRAND / "mark.svg", 1024, drop_bands=drop_bands)
+        canvas.paste(mark, (0, 0), mark)
+        return canvas
+
+    bleed_hi = bleed_for(False)
+    bleed_lo = bleed_for(True)
 
     for density, (launcher, foreground) in densities.items():
         folder = ICONS / "android" / f"mipmap-{density}"
+        bleed = bleed_hi if launcher >= 128 else bleed_lo
         regular_r = round(launcher * 0.0833)
         save_png(masked_launcher(bleed, launcher, regular_r, regular_r), folder / "ic_launcher.png")
         round_m = round(launcher * 0.04)
