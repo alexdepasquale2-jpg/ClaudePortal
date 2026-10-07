@@ -22,10 +22,21 @@ fn service_mode_is_in_process() {
         .unwrap();
     let mut stdout = child.stdout.take().unwrap();
     let (tx, rx) = mpsc::channel();
+    // Lines can arrive in separate pipe reads (Windows), so read until the ready line.
     thread::spawn(move || {
+        let mut text = String::new();
         let mut buf = [0u8; 256];
-        let n = stdout.read(&mut buf).unwrap_or(0);
-        let _ = tx.send(String::from_utf8_lossy(&buf[..n]).into_owned());
+        loop {
+            let n = stdout.read(&mut buf).unwrap_or(0);
+            if n == 0 {
+                break;
+            }
+            text.push_str(&String::from_utf8_lossy(&buf[..n]));
+            if text.contains("xinod service ready") {
+                break;
+            }
+        }
+        let _ = tx.send(text);
     });
     let line = rx.recv_timeout(Duration::from_secs(15)).unwrap();
     let _ = child.kill();
