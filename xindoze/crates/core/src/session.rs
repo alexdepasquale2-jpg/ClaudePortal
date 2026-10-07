@@ -1,21 +1,23 @@
 //! The Organism loop: page context, plan, act, observe, reflect (SPEC §3.8).
 //!
-//! Crystal check is TODO(phase 3). Until a Crystal matches, every intent
-//! takes the fluid path.
+//! A crystal serves the intent when one matches. Otherwise the planner
+//! takes the fluid path, and a finished run is offered back for promotion.
 
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use serde_json::json;
 use xz_bridge::{FsOrgan, NetOrgan, ProcOrgan, SysOrgan};
 use xz_cortex::generate_json;
+use xz_darwin::MemoryCrystalCache;
 use xz_engram::{Engram, Episode};
 use xz_genome::{Genome, Observed};
 use xz_types::plan::plan_schema;
 use xz_types::{
-    ChatMessage, Confirmer, GenRequest, Grant, Inference, Outcome, Plan, Result, Risk, StepRecord,
-    Taint, Verdict, XzError,
+    ChatMessage, Confirmer, CrystalCache, GenRequest, Grant, Inference, Outcome, Plan, Result,
+    Risk, StepRecord, Taint, ToolCall, ToolInvoker, ToolOutput, Trace, TraceStep, Verdict, XzError,
 };
 use xz_warden::{Charter, Warden};
 
@@ -48,6 +50,7 @@ pub struct Session {
     engram: Arc<Engram>,
     warden: Arc<Warden>,
     token_budget: usize,
+    crystals: MemoryCrystalCache,
 }
 
 impl Session {
@@ -101,6 +104,7 @@ impl Session {
             engram,
             warden,
             token_budget: cfg.token_budget,
+            crystals: MemoryCrystalCache::new(),
         })
     }
 
@@ -164,11 +168,15 @@ impl Session {
 
     async fn run(&self, genome: &Genome, intent: &str) -> Result<Outcome> {
         let task_id = format!("t{}", TASKS.fetch_add(1, Ordering::Relaxed));
+        if let Some(outcome) = self.try_crystal(genome, intent, &task_id).await {
+            return Ok(outcome);
+        }
         let tool_names = self.advertised(&genome.capabilities);
         let schema = plan_schema(&tool_names);
         let limit = self.warden.charter().budgets.steps_per_task as usize;
         let mut notes = Vec::new();
         let mut steps = Vec::new();
+        let mut trace_steps = Vec::new();
         let mut say = None;
         let mut ui = None;
         let mut done = false;
@@ -232,6 +240,14 @@ impl Session {
                     .map(|o| o.content.clone())
                     .unwrap_or_else(|| json!({"error": result.summary}));
                 notes.push(format!("UNTRUSTED DATA\ntool: {}\n{}", result.tool, body));
+                trace_steps.push(TraceStep {
+                    call: ToolCall {
+                        tool: result.tool.clone(),
+                        args: result.args.clone(),
+                    },
+                    ok: result.ok,
+                    output: body,
+                });
                 steps.push(StepRecord {
                     tool: result.tool,
                     args: result.args,
@@ -246,13 +262,55 @@ impl Session {
             }
         }
 
-        Ok(Outcome {
+        let outcome = Outcome {
             task_id,
             organism: genome.id.clone(),
             say,
             ui,
             steps,
             crystal: None,
+            done,
+        };
+        self.crystals
+            .observe(&Trace {
+                organism: outcome.organism.clone(),
+                intent: intent.to_string(),
+                steps: trace_steps,
+                ok: outcome.done && outcome.steps.iter().all(|step| step.ok),
+                say: outcome.say.clone(),
+                ui: outcome.ui.clone(),
+            })
+            .await;
+        Ok(outcome)
+    }
+
+    /// Runs a promoted crystal through the Synapse. A miss or a tool error
+    /// returns `None` so the caller takes the fluid path. The Warden still
+    /// journals any call the crystal already made.
+    async fn try_crystal(&self, genome: &Genome, intent: &str, task_id: &str) -> Option<Outcome> {
+        let invoker = BusInvoker {
+            synapse: &self.synapse,
+            organism: &genome.id,
+            task_id,
+            grants: &genome.capabilities,
+            steps: Mutex::new(Vec::new()),
+        };
+        let run = match self.crystals.try_run(&genome.id, intent, &invoker).await {
+            Some(Ok(run)) => run,
+            Some(Err(_)) | None => return None,
+        };
+        let steps = invoker
+            .steps
+            .into_inner()
+            .unwrap_or_else(|err| err.into_inner());
+        let done = steps.iter().all(|step| step.ok);
+        Some(Outcome {
+            task_id: task_id.to_string(),
+            organism: genome.id.clone(),
+            say: run.say,
+            ui: run.ui,
+            steps,
+            crystal: Some(run.crystal_id),
             done,
         })
     }
@@ -285,6 +343,51 @@ fn grant_matches(glob: &str, tool: &str) -> bool {
     match glob.strip_suffix('*') {
         Some(prefix) => tool.starts_with(prefix),
         None => glob == tool,
+    }
+}
+
+/// Invokes crystal steps through the Synapse, so the Warden still decides.
+struct BusInvoker<'a> {
+    synapse: &'a Synapse,
+    organism: &'a str,
+    task_id: &'a str,
+    grants: &'a [Grant],
+    steps: Mutex<Vec<StepRecord>>,
+}
+
+#[async_trait]
+impl ToolInvoker for BusInvoker<'_> {
+    async fn invoke(&self, call: ToolCall) -> Result<ToolOutput, XzError> {
+        let result = self
+            .synapse
+            .act(
+                self.organism,
+                self.task_id,
+                self.grants,
+                &call.tool,
+                call.args,
+                &Taint::none(),
+            )
+            .await?;
+        let output = result
+            .output
+            .clone()
+            .unwrap_or_else(|| ToolOutput::clean(json!({"error": result.summary})));
+        self.steps
+            .lock()
+            .unwrap_or_else(|err| err.into_inner())
+            .push(StepRecord {
+                tool: result.tool,
+                args: result.args,
+                verdict: result.verdict,
+                ok: result.ok,
+                summary: result.summary.clone(),
+            });
+        if result.ok {
+            Ok(output)
+        } else {
+            Err(XzError::Other(result.summary))
+        }
     }
 }
 
@@ -486,5 +589,33 @@ mod tests {
         let say = outcome.say.unwrap_or_default();
         assert_eq!(say, xz_hive::LOCAL_NOTICE);
         assert_eq!(say.lines().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn the_sixth_identical_run_uses_a_crystal() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let session = session(&home);
+        let hive = session
+            .genomes
+            .iter()
+            .find(|g| g.id == "xindoze.hive")
+            .unwrap()
+            .clone();
+        let intent = "which of my devices are online?";
+        for _ in 0..5 {
+            let outcome = session.handle_genome(&hive, intent).await.unwrap();
+            assert!(outcome.crystal.is_none(), "{outcome:?}");
+            assert!(outcome.steps.iter().any(|step| step.tool == "hive.peers"));
+        }
+        let fast = session.handle_genome(&hive, intent).await.unwrap();
+        assert!(fast.crystal.is_some(), "{fast:?}");
+        assert!(
+            fast.steps
+                .iter()
+                .any(|step| step.tool == "hive.peers" && step.ok)
+        );
+        assert_eq!(fast.say.as_deref(), Some("No devices are paired."));
     }
 }

@@ -6333,6 +6333,7 @@ dependencies = [
  "tokio",
  "xz-bridge",
  "xz-cortex",
+ "xz-darwin",
  "xz-engram",
  "xz-genome",
  "xz-hive",

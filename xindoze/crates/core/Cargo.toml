@@ -13,6 +13,7 @@ xz-engram = { path = "../engram" }
 xz-genome = { path = "../genome" }
 xz-bridge = { path = "../bridge" }
 xz-cortex = { path = "../cortex" }
+xz-darwin = { path = "../darwin" }
 xz-hive = { path = "../hive" }
 async-trait.workspace = true
 serde.workspace = true
