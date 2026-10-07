@@ -1,0 +1,58 @@
+name: xindoze-rust
+
+# Library crates and xinod only. Do not pass --workspace or --exclude
+# xindoze-shell: Cargo still builds the shell and pulls gdk-sys/GTK.
+on:
+  push:
+    branches: [xindoze/main]
+  pull_request:
+    branches: [xindoze/main]
+
+concurrency:
+  group: xindoze-rust-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: xindoze
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: xindoze
+      - name: Build
+        run: >
+          cargo build --locked
+          -p xz-types
+          -p xz-warden
+          -p xz-cortex
+          -p xz-engram
+          -p xz-genome
+          -p xz-bridge
+          -p xz-senses
+          -p xz-hive
+          -p xz-darwin
+          -p xz-core
+          -p xinod
+      - name: Test
+        run: >
+          cargo test --locked
+          -p xz-types
+          -p xz-warden
+          -p xz-cortex
+          -p xz-engram
+          -p xz-genome
+          -p xz-bridge
+          -p xz-senses
+          -p xz-hive
+          -p xz-darwin
+          -p xz-core
+          -p xinod
