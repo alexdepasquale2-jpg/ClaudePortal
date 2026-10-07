@@ -72,7 +72,7 @@ PY
 
 cargo tauri android build --debug --apk --target aarch64
 
-mapfile -t APKS < <(find "$SHELL_DIR/src-tauri/gen/android" -path '*outputs/apk/debug/*.apk' -name '*.apk' -printf '%T@ %p\n' | sort -n | awk '{print $2}')
+mapfile -t APKS < <(find "$SHELL_DIR/src-tauri/gen/android" -path '*outputs/apk*' -name '*debug*.apk' ! -name '*unaligned*' -printf '%T@ %p\n' | sort -n | awk '{print $2}')
 if [[ ${#APKS[@]} -eq 0 ]]; then
   echo "no apk produced" >&2
   find "$SHELL_DIR/src-tauri/gen/android" -name '*.apk' -print >&2 || true
