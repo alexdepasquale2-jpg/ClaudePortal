@@ -1,6 +1,6 @@
 . "$PSScriptRoot\common.ps1"
 
-$ArtifactName = 'xindoze-android-apk'   # upload name in xindoze/ci/xindoze.yml
+$ArtifactName = 'xindoze-android-apk'   # upload name in .github/workflows/xindoze-android.yml
 
 # Token lookup order: GITHUB_TOKEN / GH_TOKEN env, `gh auth token`, then the git credential store.
 # The token stays in memory only.
@@ -34,7 +34,7 @@ Invoke-Main {
     $list = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$slug/actions/artifacts?name=$ArtifactName&per_page=10"
     $art = $list.artifacts | Where-Object { -not $_.expired } | Sort-Object created_at -Descending | Select-Object -First 1
     if (-not $art) {
-        Write-Warn2 "No unexpired '$ArtifactName' artifact found. The Android job only runs on manual dispatch of the xindoze workflow."
+        Write-Warn2 "No unexpired '$ArtifactName' artifact found. Look at the xindoze-android workflow."
         Write-Info "Opening $actionsUrl"
         Start-Process $actionsUrl
         return

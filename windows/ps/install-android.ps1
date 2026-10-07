@@ -8,6 +8,7 @@ Invoke-Main {
 
     if (-not $Apk) {
         $cands = @()
+        $cands += Get-ChildItem (Join-Path $XzRoot 'dist\android') -Recurse -Filter '*.apk' -ErrorAction SilentlyContinue
         $cands += Get-ChildItem (Join-Path $OutDir 'android') -Recurse -Filter '*.apk' -ErrorAction SilentlyContinue
         $cands += Get-ChildItem (Join-Path $TauriDir 'gen\android\app\build\outputs\apk') -Recurse -Filter '*.apk' -ErrorAction SilentlyContinue
         $pick = $cands | Sort-Object LastWriteTime -Descending | Select-Object -First 1

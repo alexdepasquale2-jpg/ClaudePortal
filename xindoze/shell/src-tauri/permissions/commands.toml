@@ -1,0 +1,54 @@
+[[permission]]
+identifier = "allow-intent"
+description = "Handle an intent from the Intent Bar."
+commands.allow = ["intent"]
+
+[[permission]]
+identifier = "allow-intent-for"
+description = "Handle an intent for one Organism."
+commands.allow = ["intent_for"]
+
+[[permission]]
+identifier = "allow-tool-call"
+description = "Run a tool bound to a Canvas button."
+commands.allow = ["tool_call"]
+
+[[permission]]
+identifier = "allow-confirm-reply"
+description = "Answer a confirmation."
+commands.allow = ["confirm_reply"]
+
+[[permission]]
+identifier = "allow-rewind"
+description = "Undo a task."
+commands.allow = ["rewind"]
+
+[[permission]]
+identifier = "allow-pulse"
+description = "Read system health."
+commands.allow = ["pulse"]
+
+[[permission]]
+identifier = "allow-genomes"
+description = "List installed genomes."
+commands.allow = ["genomes"]
+
+[[permission]]
+identifier = "allow-journal"
+description = "Read the journal."
+commands.allow = ["journal"]
+
+[[permission]]
+identifier = "allow-charter"
+description = "Read the charter."
+commands.allow = ["charter"]
+
+[[permission]]
+identifier = "allow-blob"
+description = "Resolve an image blob."
+commands.allow = ["blob"]
+
+[[permission]]
+identifier = "allow-open-url"
+description = "Open an http(s) link."
+commands.allow = ["open_url"]
