@@ -2,7 +2,7 @@
 
 Art, sounds, and type for the Xindoze shell (SPEC §3.11, §7, §14). Everything here is offline. Nothing loads from a CDN.
 
-The chromosome in this folder is a finished X: two chromatids joined at the centre, banded, with a centromere. Launcher icons, the app mark, and the UI icon set are a separate branch under `xindoze/assets/brand/`.
+Every X in this folder uses the brand chromatids: Ember `M236 176C552 330 552 694 236 848`, Biolume `M788 176C472 330 472 694 788 848`, round caps, Bone bead. The mark files themselves stay in `xindoze/assets/brand/`.
 
 ## Fonts
 
@@ -25,7 +25,7 @@ The chromosome in this folder is a finished X: two chromatids joined at the cent
 | `canvas/wallpaper-dark.svg`, `canvas/wallpaper-light.svg` | Scalable desktop field |
 | `canvas/wallpaper-*-1920x1080.png`, `canvas/wallpaper-*-3840x2160.png` | Same field for an OS wallpaper picker |
 | `canvas/wallpaper.css` | The shell import |
-| `canvas/boot/boot.svg` | Cell dividing into the X, then “Xindoze has evolved.” Respects `prefers-reduced-motion` and the light scheme |
+| `canvas/boot/boot.svg` | Dark by default. A Biolume cell pinches and splits into the brand X in about 2.5s, then “Xindoze has evolved.” Reduced motion shows the final frame. Light inverts Obsidian and Bone |
 | `canvas/boot/boot.html` | Standalone boot screen |
 | `canvas/make_canvas.py` | Regenerates the wallpaper SVG and PNG files |
 

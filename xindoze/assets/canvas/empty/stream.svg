@@ -2,27 +2,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" role="img" aria-label="Empty Stream">
   <style>
     .ink { stroke: #EDE8DF; fill: none; }
-    .glow { stroke: #2BF5C4; fill: none; }
-    .core { fill: #2BF5C4; }
-    .inkfill { fill: #EDE8DF; }
+    .ring { fill: #0B0D10; }
+    .bead { fill: #EDE8DF; }
+    .band { stroke: #0B0D10; }
     @media (prefers-color-scheme: light) {
       .ink { stroke: #0B0D10; }
-      .glow { stroke: #0B8F72; }
-      .core { fill: #0B8F72; }
-      .inkfill { fill: #0B0D10; }
+      .ring { fill: #EDE8DF; }
+      .bead { fill: #0B0D10; }
+      .band { stroke: #EDE8DF; }
     }
   </style>
-  <path class="ink" d="M150 16C112 46 176 62 142 96C108 130 176 148 148 188" stroke-width="1.4" opacity="0.45"/>
-  <circle class="ink" cx="128" cy="42" r="12" stroke-width="1.5"/>
-  <circle class="glow" cx="142" cy="100" r="36" stroke-width="1.6"/>
-  <g transform="translate(142 100) scale(0.2)" fill="none" stroke-linecap="round">
-    <path class="ink" d="M-118-198C48-96 36-36 0 0C-36 48-52 112-128 208" stroke-width="22"/>
-    <path class="ink" d="M118-198C-48-96-36-36 0 0C36 48 52 112 128 208" stroke-width="22"/>
-    <path class="glow" d="M-62-150l26-14M-14-96l22-8M-46 52l20 12M-70 104l22 14M62-150l-26-14M14-96l-22-8M46 52l-20 12M70 104l-22 14" stroke-width="6"/>
-    <circle class="inkfill" cx="0" cy="0" r="12"/>
-    <circle class="core" cx="0" cy="0" r="5"/>
+  <circle class="ink" cx="140" cy="100" r="78" stroke-width="1.5" opacity="0.35"/>
+  <g transform="translate(140 100) scale(0.2) translate(-512 -512)" fill="none" stroke-linecap="round">
+    <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" stroke-width="112"/>
+    <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" stroke-width="112"/>
+    <g class="band" stroke-width="16" stroke-linecap="butt">
+      <path d="M424.6 236.2L327.2 318.1"/>
+      <path d="M501.6 348.4L382.9 400.7"/>
+      <path d="M501.6 675.6L382.9 623.3"/>
+      <path d="M424.6 787.8L327.2 705.9"/>
+      <path d="M696.8 318.1L599.4 236.2"/>
+      <path d="M641.1 400.7L522.4 348.4"/>
+      <path d="M641.1 623.3L522.4 675.6"/>
+      <path d="M696.8 705.9L599.4 787.8"/>
+    </g>
+    <circle class="ring" cx="512" cy="512" r="48"/>
+    <circle class="bead" cx="512" cy="512" r="30"/>
   </g>
-  <circle class="ink" cx="158" cy="164" r="9" stroke-width="1.5"/>
-  <circle class="core" cx="186" cy="74" r="2.4" opacity="0.9"/>
-  <circle class="core" cx="104" cy="132" r="1.7" opacity="0.7"/>
 </svg>
