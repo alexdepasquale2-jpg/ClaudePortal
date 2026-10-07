@@ -5,7 +5,7 @@
 //! accept the call so a plan can name the tool and the Warden can refuse it.
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use serde_json::{Value, json};
@@ -327,12 +327,52 @@ impl Organ for Scheduler {
     }
 }
 
-/// Hive tools before pairing exists (SPEC phase 2). Calls succeed with an
-/// empty peer list so the planner can show that nothing is paired.
-pub struct HiveStub;
+/// This device's Hive view. Pairing state lives in `xz-hive`. With no peers
+/// paired, `hive.run_on` reports that the work ran here.
+pub struct HiveOrgan {
+    device: Mutex<xz_hive::Device>,
+}
+
+impl HiveOrgan {
+    /// `device_id` is the session id. A 64-digit hex string is used as the
+    /// Hive id. Anything else is folded into 32 bytes so the same session
+    /// id always names the same device.
+    pub fn new(device_id: &str) -> Self {
+        let name = {
+            let trimmed = device_id.trim();
+            if trimmed.is_empty() {
+                "This device".to_string()
+            } else {
+                trimmed.to_string()
+            }
+        };
+        let identity = xz_hive::Identity::new(name, device_bytes(device_id))
+            .expect("device name is non-empty");
+        Self {
+            device: Mutex::new(xz_hive::Device::new(identity)),
+        }
+    }
+}
+
+fn device_bytes(device_id: &str) -> xz_hive::DeviceId {
+    if let Ok(parsed) = xz_hive::DeviceId::from_hex(device_id) {
+        return parsed;
+    }
+    let mut bytes = [0u8; xz_hive::DEVICE_ID_LEN];
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for (i, byte) in device_id.bytes().enumerate() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        bytes[i % xz_hive::DEVICE_ID_LEN] ^= byte.wrapping_add((hash & 0xff) as u8);
+    }
+    if bytes.iter().all(|b| *b == 0) {
+        bytes[0] = 1;
+    }
+    xz_hive::DeviceId::from_bytes(bytes)
+}
 
 #[async_trait]
-impl Organ for HiveStub {
+impl Organ for HiveOrgan {
     fn family(&self) -> &str {
         "hive"
     }
@@ -356,13 +396,61 @@ impl Organ for HiveStub {
     }
 
     async fn call(&self, _ctx: &CallCtx, tool: &str, args: Value) -> Result<ToolOutput> {
+        let device = self.device.lock().unwrap_or_else(|err| err.into_inner());
         match tool {
-            "hive.peers" => Ok(ToolOutput::clean(json!({"peers": []}))),
-            "hive.send" | "hive.run_on" => Ok(ToolOutput::clean(json!({
-                "delivered": false,
-                "reason": "no device is paired",
-                "args": args
-            }))),
+            "hive.peers" => {
+                let peers: Vec<_> = device
+                    .peers()
+                    .iter()
+                    .map(|peer| {
+                        json!({
+                            "id": peer.id().to_hex(),
+                            "name": peer.identity.name(),
+                            "presence": match peer.presence {
+                                xz_hive::Presence::Online => "online",
+                                xz_hive::Presence::Offline => "offline",
+                            },
+                            "stronger": peer.stronger,
+                        })
+                    })
+                    .collect();
+                Ok(ToolOutput::clean(json!({"peers": peers})))
+            }
+            "hive.run_on" => {
+                let question = args.get("intent").and_then(Value::as_str).unwrap_or("");
+                match device.route(question) {
+                    xz_hive::Route::RanOn { peer, notice } => Ok(ToolOutput::clean(json!({
+                        "delivered": true,
+                        "ran": "peer",
+                        "peer": peer.identity.name(),
+                        "notice": notice,
+                    }))),
+                    xz_hive::Route::RanLocal { notice } => Ok(ToolOutput::clean(json!({
+                        "delivered": false,
+                        "ran": "local",
+                        "notice": notice,
+                    }))),
+                }
+            }
+            "hive.send" => {
+                let wanted = args.get("device").and_then(Value::as_str).unwrap_or("");
+                let paired = device.peers().iter().any(|peer| {
+                    peer.presence == xz_hive::Presence::Online
+                        && peer.identity.name().eq_ignore_ascii_case(wanted)
+                });
+                if paired {
+                    Ok(ToolOutput::clean(json!({
+                        "delivered": true,
+                        "device": wanted,
+                    })))
+                } else {
+                    Ok(ToolOutput::clean(json!({
+                        "delivered": false,
+                        "reason": "no device is paired",
+                        "args": args,
+                    })))
+                }
+            }
             _ => Err(XzError::UnknownTool(tool.into())),
         }
     }

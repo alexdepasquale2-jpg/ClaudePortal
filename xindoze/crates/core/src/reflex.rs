@@ -446,24 +446,47 @@ fn prime(text: &str, trace: &[Trace]) -> Value {
 
 fn hive(text: &str, trace: &[Trace]) -> Value {
     if text.contains("online") || text.contains("devices") {
-        if trace.iter().any(|t| t.tool == "hive.peers") {
+        if let Some(hit) = trace.iter().find(|t| t.tool == "hive.peers") {
+            let rows = peer_rows(hit);
+            let say = if rows.is_empty() {
+                "No devices are paired."
+            } else {
+                "These devices are paired."
+            };
             return done(
                 "show peers",
                 vec![],
                 Some(Node::Table {
                     columns: vec!["Device".into(), "Status".into(), "Tier".into()],
-                    rows: vec![],
+                    rows,
                 }),
-                Some("No devices are paired.".into()),
+                Some(say.into()),
             );
         }
         return step("list peers", "hive.peers", json!({}));
     }
     if text.contains("on my pc") || text.contains("answer this") {
+        if let Some(hit) = trace.iter().find(|t| t.tool == "hive.run_on") {
+            let notice = hit
+                .body
+                .get("notice")
+                .and_then(Value::as_str)
+                .filter(|line| !line.is_empty())
+                .unwrap_or("The PC is off, so this ran on this device.");
+            return done("ran locally", vec![], None, Some(notice.to_string()));
+        }
         return step(
             "run on the pc",
             "hive.run_on",
             json!({"device": "pc", "intent": text}),
+        );
+    }
+    if trace.iter().any(|t| t.tool == "hive.send") {
+        return done(
+            "send finished",
+            vec![],
+            None,
+            Some("No device is paired, so nothing was sent.".into()),
         );
     }
     step(
@@ -471,6 +494,35 @@ fn hive(text: &str, trace: &[Trace]) -> Value {
         "hive.send",
         json!({"device": "phone", "item": text}),
     )
+}
+
+fn peer_rows(hit: &Trace) -> Vec<Vec<String>> {
+    hit.body
+        .get("peers")
+        .and_then(Value::as_array)
+        .map(|peers| {
+            peers
+                .iter()
+                .map(|peer| {
+                    vec![
+                        peer.get("name")
+                            .and_then(Value::as_str)
+                            .unwrap_or("device")
+                            .to_string(),
+                        peer.get("presence")
+                            .and_then(Value::as_str)
+                            .unwrap_or("offline")
+                            .to_string(),
+                        if peer.get("stronger").and_then(Value::as_bool) == Some(true) {
+                            "stronger".into()
+                        } else {
+                            "this tier".into()
+                        },
+                    ]
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn ancestors(text: &str, trace: &[Trace]) -> Value {

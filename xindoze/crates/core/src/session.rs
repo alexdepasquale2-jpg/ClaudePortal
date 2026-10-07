@@ -19,7 +19,7 @@ use xz_types::{
 };
 use xz_warden::{Charter, Warden};
 
-use crate::organs::{Desk, HiveStub, MediaStub, Scheduler};
+use crate::organs::{Desk, HiveOrgan, MediaStub, Scheduler};
 use crate::pager::page;
 use crate::route::route;
 use crate::synapse::Synapse;
@@ -79,7 +79,7 @@ impl Session {
             Arc::new(SysOrgan::new()),
             desk,
             Arc::new(Scheduler::new(engram.clone())),
-            Arc::new(HiveStub),
+            Arc::new(HiveOrgan::new(&cfg.device_id)),
             Arc::new(MediaStub),
         ];
         let synapse = Synapse::new(organs, warden.clone(), engram.clone(), cfg.confirmer);
@@ -455,5 +455,36 @@ mod tests {
             }
         }
         assert!(failed.is_empty(), "{}", failed.join("\n"));
+    }
+
+    #[tokio::test]
+    async fn a_hard_question_runs_here_when_the_pc_is_offline() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let session = session(&home);
+        let hive = session
+            .genomes
+            .iter()
+            .find(|g| g.id == "xindoze.hive")
+            .unwrap()
+            .clone();
+        let outcome = session
+            .handle_genome(
+                &hive,
+                "answer this on my PC: explain how vaccines train the immune system",
+            )
+            .await
+            .unwrap();
+        assert!(
+            outcome
+                .steps
+                .iter()
+                .any(|step| step.tool == "hive.run_on" && step.ok),
+            "{outcome:?}"
+        );
+        let say = outcome.say.unwrap_or_default();
+        assert_eq!(say, xz_hive::LOCAL_NOTICE);
+        assert_eq!(say.lines().count(), 1);
     }
 }
