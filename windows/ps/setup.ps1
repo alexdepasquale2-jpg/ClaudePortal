@@ -59,9 +59,10 @@ Invoke-Main {
     if (Test-Cmd 'npm') {
         Write-Ok "node $(& node --version)  npm $(& npm --version)"
         Ensure-UiDeps
-        Write-Step "Tauri CLI ($TauriCli via npx, same as CI)"
-        Invoke-Native 'npx' @('--yes', $TauriCli, '--version') $ShellDir
-        if (Test-Cmd 'cargo-tauri') { Write-Info 'cargo-tauri is also installed; the scripts use the npx CLI.' }
+        Write-Step 'Tauri CLI (cargo tauri if installed, else npx, as CI uses)'
+        $r = Get-TauriRunner
+        Invoke-Native $r.Exe ($r.Pre + @('--version')) $ShellDir
+        Write-Ok "Using $($r.Name)"
     } else { $problems += 'npm not found after install (open a new window and re-run setup)' }
 
     # Android

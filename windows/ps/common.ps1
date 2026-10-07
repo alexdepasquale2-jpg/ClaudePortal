@@ -10,6 +10,8 @@ $Script:TauriDir  = Join-Path $ShellDir 'src-tauri'
 $Script:TargetDir = Join-Path $XzRoot 'target'
 $Script:OutDir    = Join-Path $RepoRoot 'windows\out'
 $Script:TauriCli  = '@tauri-apps/cli@2'
+# Cargo.lock pins tauri 2.11 while the UI uses @tauri-apps/api 2.12; the CLI refuses to build on that minor mismatch.
+$Script:TauriLenient = '--ignore-version-mismatches'
 
 # Same crate list as .github/workflows/xindoze-rust.yml. No --workspace: it pulls in the shell (GTK on Linux).
 $Script:CiCrates = @('xz-types','xz-warden','xz-cortex','xz-engram','xz-genome','xz-bridge',
@@ -40,10 +42,27 @@ function Invoke-Native {
 
 function Test-Cmd([string]$name) { [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
+# Rebuilds PATH from Machine + User + the current process, with cargo first.
+# Entries are expanded, unquoted and de-duplicated: one stray '"' in an entry (e.g. `C:\Program Files\GitHub CLI"`)
+# makes Rust's PATH parser (used by the Tauri CLI to spawn cargo) swallow every later entry, while PowerShell still
+# finds cargo. That gives "failed to run 'cargo metadata' ... program not found".
 function Update-PathFromRegistry {
-    $m = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-    $u = [Environment]::GetEnvironmentVariable('Path', 'User')
-    $env:Path = "$m;$u;$env:USERPROFILE\.cargo\bin"
+    $parts = @("$env:USERPROFILE\.cargo\bin")
+    if ($env:CARGO_HOME) { $parts = @("$env:CARGO_HOME\bin") + $parts }
+    $parts += [Environment]::GetEnvironmentVariable('Path', 'Machine') -split ';'
+    $parts += [Environment]::GetEnvironmentVariable('Path', 'User') -split ';'
+    $parts += $env:Path -split ';'
+    $seen = @{}
+    $clean = foreach ($p in $parts) {
+        if (-not $p) { continue }
+        $p = [Environment]::ExpandEnvironmentVariables($p).Trim().Trim('"').Trim()
+        if (-not $p) { continue }
+        $key = $p.TrimEnd('\').ToLowerInvariant()
+        if ($seen.ContainsKey($key)) { continue }
+        $seen[$key] = $true
+        $p
+    }
+    $env:Path = $clean -join ';'
 }
 
 function Require-Cmd([string]$name, [string]$hint) {
@@ -90,9 +109,28 @@ function Ensure-UiDeps {
     Invoke-Native 'npm' @('ci') $UiDir
 }
 
-function Invoke-Tauri([string[]]$TauriArgs) {
+# Prefers `cargo tauri` (tauri-cli 2.x) and falls back to the npx CLI that CI uses.
+function Get-TauriRunner {
+    if ((Test-Cmd 'cargo') -and (Test-Cmd 'cargo-tauri')) {
+        $v = (& cargo tauri --version 2>$null)
+        if ($LASTEXITCODE -eq 0 -and "$v" -match 'tauri-cli 2\.') { return @{ Exe = 'cargo'; Pre = @('tauri'); Name = "$v".Trim() } }
+    }
     Require-Cmd 'npx' 'Install Node.js 22 LTS.'
-    Invoke-Native 'npx' (@('--yes', $TauriCli) + $TauriArgs) $ShellDir
+    return @{ Exe = 'npx'; Pre = @('--yes', $TauriCli); Name = "npx $TauriCli" }
+}
+
+function Invoke-Tauri([string[]]$TauriArgs) {
+    $r = Get-TauriRunner
+    Invoke-Native $r.Exe ($r.Pre + $TauriArgs) $ShellDir
+}
+
+# Built Canvas exe: xindoze-canvas.exe (Windows mainBinaryName), else the crate name xindoze-shell.exe.
+function Find-CanvasExe {
+    foreach ($n in @('xindoze-canvas.exe', 'xindoze-shell.exe')) {
+        $p = Join-Path $TargetDir "release\$n"
+        if (Test-Path $p) { return $p }
+    }
+    return $null
 }
 
 # ---------- Android environment ----------
@@ -169,6 +207,7 @@ function Test-Admin {
 # Runs the given script body; prints a clear error and exits 1 on failure.
 function Invoke-Main([scriptblock]$Body) {
     try {
+        Update-PathFromRegistry
         & $Body
         exit 0
     } catch {

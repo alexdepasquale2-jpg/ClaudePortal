@@ -1,5 +1,6 @@
 param([switch]$Elevated, [switch]$Uninstall)
 . "$PSScriptRoot\common.ps1"
+Update-PathFromRegistry
 
 function Stop-Canvas {
     $p = Get-Process -Name 'xindoze-canvas' -ErrorAction SilentlyContinue
@@ -11,8 +12,8 @@ function Stop-Canvas {
 }
 
 function Install-Canvas {
-    $src = Join-Path $TargetDir 'release\xindoze-shell.exe'
-    if (-not (Test-Path $src)) { Fail "No built Canvas at $src. Run build-desktop.bat first." }
+    $src = Find-CanvasExe
+    if (-not $src) { Fail "No built Canvas (xindoze-canvas.exe or xindoze-shell.exe) in $TargetDir\release. Run build-desktop.bat first." }
     Write-Step "Installing to $InstalledExe"
     Stop-Canvas
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null

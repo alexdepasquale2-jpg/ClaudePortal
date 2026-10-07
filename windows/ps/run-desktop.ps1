@@ -5,5 +5,5 @@ Invoke-Main {
     Require-Cmd 'cargo' 'Install Rust stable.'
     Ensure-UiDeps
     Write-Step 'Starting the desktop shell in dev mode (close the app window or press Ctrl+C to stop)'
-    Invoke-Tauri @('dev')
+    Invoke-Tauri @('dev', $TauriLenient)
 }
