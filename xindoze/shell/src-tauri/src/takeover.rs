@@ -205,9 +205,6 @@ fn install_shortcuts(app: &tauri::App) -> Result<(), String> {
                 }
             })
             .map_err(|e| e.to_string())?;
-        for shortcut in [summon, leave] {
-            app.global_shortcut().register(shortcut).map_err(|e| e.to_string())?;
-        }
     }
     let _ = app;
     Ok(())
