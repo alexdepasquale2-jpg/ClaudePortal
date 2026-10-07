@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "shell/src-tauri"]
+# shell/src-tauri returns as a member in phase 1. It needs the Canvas
+# (shell/ui) and GTK/WebKit headers, which this host does not have.
+members = ["crates/*"]
 
 [workspace.package]
 version = "0.1.0"

@@ -8,3 +8,18 @@ license.workspace = true
 
 [dependencies]
 xz-types.workspace = true
+xz-core = { path = "../core" }
+xz-cortex = { path = "../cortex" }
+xz-genome = { path = "../genome" }
+async-trait.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tempfile.workspace = true
+
+[[bin]]
+name = "xz"
+path = "src/bin/xz.rs"
+
+[[bin]]
+name = "xinod"
+path = "src/bin/xinod.rs"
