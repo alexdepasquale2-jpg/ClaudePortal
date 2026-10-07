@@ -90,7 +90,7 @@ Everything above runs in one daemon, **`xinod`**, with the Canvas as its face. O
 - **Families:** `fs`, `proc`, `net`, `clip`, `notify`, `media` (camera, mic, speaker, screen), `sensor`, `power`, `people` (contacts, calendar, messages), `ui` (windows, accessibility tree, input injection), `sys` (device info, settings).
 - **Implementations:**
   - `bridge-windows`: Win32, WinRT and UI Automation through `windows-rs`.
-  - `bridge-android`: JNI to a Kotlin Tauri plugin that wraps intents, the Storage Access Framework, notifications, CameraX, sensors, content providers and the AccessibilityService.
+  - `bridge-android`: JNI to a Kotlin Tauri plugin that wraps intents, the Storage Access Framework, notifications, CameraX, sensors and content providers.
   - `bridge-linux`: POSIX, D-Bus, AT-SPI and Wayland/X11.
   - `bridge-native`: `bridge-linux` plus system-owner powers (network config, power, display, updates).
 
@@ -100,7 +100,7 @@ Everything above runs in one daemon, **`xinod`**, with the Canvas as its face. O
 | media (camera, mic, screen) | ✅ | ✅ | ✅ | ✅ |
 | sensor | partial | ✅ | partial | partial |
 | people (contacts, calendar, SMS) | via Ancestors | ✅ | via Ancestors | ✅ (own stores) |
-| ui (drive other apps) | ✅ UI Automation | ✅ Accessibility (opt-in) | ✅ AT-SPI | ✅ |
+| ui (read other apps) | ✅ UI Automation, read-only | — (v1) | ✅ AT-SPI, read-only | ✅ |
 | power / sys | user-level | user-level | user-level | ✅ full |
 
 ### 3.2 Organs (capability servers)
@@ -229,10 +229,10 @@ Everything above runs in one daemon, **`xinod`**, with the Canvas as its face. O
 Adapters, in order of preference:
 
 1. **CLI:** read the app's `--help` and generate a tool schema. This is the most reliable.
-2. **Automation API:** Windows UI Automation, Android AccessibilityService, Linux AT-SPI. The app's accessibility tree becomes observable state.
+2. **Automation API (read-only in v1):** Windows UI Automation and Linux AT-SPI. The app's window list and accessibility tree become observable state. Clicking and typing into other apps is deferred: the CLI adapter covers v1, and input injection needs its own design review before it ships.
 3. **Vision:** screenshot plus a local vision model plus input injection. This is the last resort.
 
-An Ancestor profile is a Genome whose Organ is an app. Input injection is always `commit`. Revenge is success: the old apps keep working, now inside the new paradigm.
+An Ancestor profile is a Genome whose Organ is an app. Running an Ancestor is always `commit`. Revenge is success: the old apps keep working, now inside the new paradigm.
 
 ---
 
@@ -266,7 +266,7 @@ An Ancestor profile is a Genome whose Organ is an app. Input injection is always
 |---|---|---|---|
 | **Guest** | App window | App | Uninstall |
 | **Overlay** (default) | Summon key brings the Intent Bar over anything | Quick-settings tile + assistant gesture | Toggle |
-| **Takeover** | Replaces Explorer as the user shell (per-user Winlogon `Shell` value, or Shell Launcher on Enterprise/Education) | Registers as the HOME launcher | One switch in Charter, plus a boot-time escape key (Windows) or the system Settings default-apps screen (Android). **Always reversible.** |
+| **Takeover** | Starts at login fullscreen as the primary surface; Explorer stays underneath | Registers as the HOME launcher | One switch in the Canvas, or the system default-apps screen (Android). **Always reversible.** |
 
 ---
 
