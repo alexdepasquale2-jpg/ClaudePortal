@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" role="img" aria-labelledby="boot-title">
+  <title id="boot-title">Xindoze has evolved.</title>
+  <defs>
+    <filter id="cellglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="bloom" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <radialGradient id="halo" cx="512" cy="512" r="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2BF5C4" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2BF5C4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    @font-face {
+      font-family: "Inter Variable";
+      src: url("../../fonts/inter/InterVariable.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+    }
+    .bg { fill: #0B0D10; }
+    .wash { fill: #EDE8DF; }
+    .membrane { fill: none; stroke: #EDE8DF; }
+    .line { fill: #EDE8DF; }
+    .cell { fill: rgba(43, 245, 196, 0.14); stroke: #2BF5C4; }
+    .band { stroke: #0B0D10; }
+    .ring { fill: #0B0D10; }
+    .bead { fill: #EDE8DF; }
+    .cell, .pinch { opacity: 0; }
+    .bloom, .mark, .bead-wrap, .line { opacity: 1; }
+    .line {
+      font-family: "Inter Variable", Inter, sans-serif;
+      font-size: 42px;
+      font-weight: 560;
+      letter-spacing: -0.02em;
+    }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #EDE8DF; }
+      .wash { fill: #0B0D10; }
+      .membrane { stroke: #0B0D10; }
+      .line { fill: #0B0D10; }
+      .cell { fill: rgba(11, 143, 114, 0.12); stroke: #0B8F72; }
+      .band { stroke: #EDE8DF; }
+      .ring { fill: #EDE8DF; }
+      .bead { fill: #0B0D10; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .bloom { opacity: 0; animation: fade 0.55s ease 1.55s forwards; }
+      .cell {
+        opacity: 1;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: cell 1.45s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      .pinch {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: pinch 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.72s forwards;
+      }
+      .ember, .biolume {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      .ember { animation: split-l 1.05s cubic-bezier(0.16, 0.84, 0.32, 1) 0.95s forwards; }
+      .biolume { animation: split-r 1.05s cubic-bezier(0.16, 0.84, 0.32, 1) 0.95s forwards; }
+      .draw {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        animation: draw 1.05s cubic-bezier(0.16, 0.84, 0.32, 1) 0.95s forwards;
+      }
+      .bead-wrap { opacity: 0; animation: land 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) 1.85s forwards; }
+      .line { opacity: 0; animation: fade 0.4s ease 2.1s forwards; }
+    }
+    @keyframes cell {
+      0% { opacity: 0; transform: scale(0.62); }
+      16% { opacity: 1; transform: scale(1); }
+      38% { opacity: 1; transform: scale(1.08); }
+      68% { opacity: 1; transform: scale(0.42, 1.28); }
+      100% { opacity: 0; transform: scale(0.16, 1.4); }
+    }
+    @keyframes pinch {
+      0% { opacity: 0; transform: scale(0.4, 1); }
+      35% { opacity: 0.9; transform: scale(1, 0.72); }
+      100% { opacity: 0; transform: scale(1.35, 0.2); }
+    }
+    @keyframes split-l {
+      0% { opacity: 0; transform: translate(120px, 0) scale(0.34) rotate(22deg); }
+      28% { opacity: 1; }
+      100% { opacity: 1; transform: none; }
+    }
+    @keyframes split-r {
+      0% { opacity: 0; transform: translate(-120px, 0) scale(0.34) rotate(-22deg); }
+      28% { opacity: 1; }
+      100% { opacity: 1; transform: none; }
+    }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes land {
+      0% { opacity: 0; transform: scale(0.4); }
+      100% { opacity: 1; transform: none; }
+    }
+    @keyframes fade { to { opacity: 1; } }
+  </style>
+  <rect class="bg" width="1440" height="900"/>
+  <ellipse class="wash" cx="260" cy="780" rx="360" ry="240" opacity="0.04"/>
+  <ellipse class="wash" cx="1200" cy="160" rx="280" ry="200" opacity="0.035"/>
+  <ellipse class="membrane" cx="200" cy="150" rx="86" ry="64" stroke-width="1.25" opacity="0.16"/>
+  <ellipse class="membrane" cx="1260" cy="740" rx="110" ry="78" stroke-width="1.25" opacity="0.14"/>
+  <g transform="translate(208 -112)">
+    <circle class="bloom" cx="512" cy="512" r="210" fill="url(#halo)" filter="url(#cellglow)"/>
+    <g class="bloom" filter="url(#bloom)" fill="none" stroke-linecap="round" stroke-width="150">
+      <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" opacity="0.85"/>
+      <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" opacity="0.85"/>
+    </g>
+    <circle class="cell" cx="512" cy="512" r="148" stroke-width="3" filter="url(#cellglow)"/>
+    <circle class="pinch" cx="512" cy="512" r="46" fill="none" stroke="#2BF5C4" stroke-width="3"/>
+    <g class="mark" fill="none" stroke-linecap="round">
+      <g class="ember">
+        <path class="draw" pathLength="1" d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" stroke-width="112"/>
+        <g class="band" stroke-width="16" stroke-linecap="butt">
+          <path d="M424.6 236.2L327.2 318.1"/>
+          <path d="M501.6 348.4L382.9 400.7"/>
+          <path d="M501.6 675.6L382.9 623.3"/>
+          <path d="M424.6 787.8L327.2 705.9"/>
+        </g>
+      </g>
+      <g class="biolume">
+        <path class="draw" pathLength="1" d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" stroke-width="112"/>
+        <g class="band" stroke-width="16" stroke-linecap="butt">
+          <path d="M696.8 318.1L599.4 236.2"/>
+          <path d="M641.1 400.7L522.4 348.4"/>
+          <path d="M641.1 623.3L522.4 675.6"/>
+          <path d="M696.8 705.9L599.4 787.8"/>
+        </g>
+      </g>
+    </g>
+    <g class="bead-wrap" transform-box="fill-box" transform-origin="center">
+      <circle class="ring" cx="512" cy="512" r="48"/>
+      <circle class="bead" cx="512" cy="512" r="30"/>
+    </g>
+  </g>
+  <text class="line" x="720" y="820" text-anchor="middle">Xindoze has evolved.</text>
+</svg>

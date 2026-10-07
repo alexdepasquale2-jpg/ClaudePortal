@@ -7,7 +7,6 @@
   import { entrance } from '../lib/motion';
 
   let { size = 28, animate = false }: { size?: number; animate?: boolean } = $props();
-  const id = $props.id();
   const draw = (delay: number) => ({
     keyframes: [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }],
     duration: 900,
@@ -16,39 +15,28 @@
 </script>
 
 <svg width={size} height={size} viewBox="180 120 664 784" aria-hidden="true" focusable="false">
-  <defs>
-    <linearGradient
-      id="{id}-dna"
-      x1="236"
-      y1="176"
-      x2="788"
-      y2="848"
-      gradientUnits="userSpaceOnUse"
-    >
-      <stop offset="0.12" stop-color="#FF5A1F" />
-      <stop offset="0.5" stop-color="#F4B23A" />
-      <stop offset="0.88" stop-color="#2BF5C4" />
-    </linearGradient>
-  </defs>
-  <g fill="none" stroke="url(#{id}-dna)" stroke-width="112" stroke-linecap="round">
+  <g fill="none" stroke-width="112" stroke-linecap="round">
     {#if animate}
       <path
+        stroke="#FF5A1F"
         pathLength="1"
         stroke-dasharray="1"
         d="M236 176 C552 330 552 694 236 848"
         use:entrance={draw(0)}
       />
       <path
+        stroke="#2BF5C4"
         pathLength="1"
         stroke-dasharray="1"
         d="M788 176 C472 330 472 694 788 848"
         use:entrance={draw(120)}
       />
     {:else}
-      <path d="M236 176 C552 330 552 694 236 848" />
-      <path d="M788 176 C472 330 472 694 788 848" />
+      <path stroke="#FF5A1F" d="M236 176 C552 330 552 694 236 848" />
+      <path stroke="#2BF5C4" d="M788 176 C472 330 472 694 788 848" />
     {/if}
   </g>
+  <circle cx="512" cy="512" r="30" fill="#EDE8DF" />
 </svg>
 
 <style>

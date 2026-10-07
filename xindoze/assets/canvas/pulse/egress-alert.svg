@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Egress alert">
+  <style>
+    .ring { fill: none; stroke: #FF5A1F; stroke-width: 2.5; stroke-linecap: round; }
+    .drop { fill: #FF5A1F; }
+    @media (prefers-reduced-motion: no-preference) {
+      .drop { animation: leave 1.8s ease-in-out infinite; }
+    }
+    @keyframes leave {
+      0%, 100% { transform: translate(0, 0); opacity: 1; }
+      50% { transform: translate(4px, -3px); opacity: 0.55; }
+    }
+  </style>
+  <circle class="ring" cx="30" cy="34" r="14" stroke-dasharray="70 18" stroke-dashoffset="8"/>
+  <circle class="drop" cx="48" cy="16" r="3.5"/>
+</svg>

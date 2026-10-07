@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" role="img" aria-label="Empty Stream">
+  <style>
+    .ink { stroke: #EDE8DF; fill: none; }
+    .ring { fill: #0B0D10; }
+    .bead { fill: #EDE8DF; }
+    .band { stroke: #0B0D10; }
+    @media (prefers-color-scheme: light) {
+      .ink { stroke: #0B0D10; }
+      .ring { fill: #EDE8DF; }
+      .bead { fill: #0B0D10; }
+      .band { stroke: #EDE8DF; }
+    }
+  </style>
+  <circle class="ink" cx="140" cy="100" r="78" stroke-width="1.5" opacity="0.35"/>
+  <g transform="translate(140 100) scale(0.2) translate(-512 -512)" fill="none" stroke-linecap="round">
+    <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" stroke-width="112"/>
+    <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" stroke-width="112"/>
+    <g class="band" stroke-width="16" stroke-linecap="butt">
+      <path d="M424.6 236.2L327.2 318.1"/>
+      <path d="M501.6 348.4L382.9 400.7"/>
+      <path d="M501.6 675.6L382.9 623.3"/>
+      <path d="M424.6 787.8L327.2 705.9"/>
+      <path d="M696.8 318.1L599.4 236.2"/>
+      <path d="M641.1 400.7L522.4 348.4"/>
+      <path d="M641.1 623.3L522.4 675.6"/>
+      <path d="M696.8 705.9L599.4 787.8"/>
+    </g>
+    <circle class="ring" cx="512" cy="512" r="48"/>
+    <circle class="bead" cx="512" cy="512" r="30"/>
+  </g>
+</svg>

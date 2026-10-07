@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <title>Xindoze mark, monochrome</title>
+  <g stroke-linecap="round" fill="none" stroke="#EDE8DF" stroke-width="112">
+    <path d="M236 176C552 330 552 694 236 848"/>
+    <path d="M788 176C472 330 472 694 788 848"/>
+  </g>
+  <circle cx="512" cy="512" r="30" fill="#EDE8DF"/>
+</svg>

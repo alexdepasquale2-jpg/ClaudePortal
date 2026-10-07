@@ -2,6 +2,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { errorText, type RewindReport } from '../lib/api';
+  import Icon from '../lib/icons/Icon.svelte';
   import { shell } from '../lib/shell.svelte';
 
   let { taskId }: { taskId: string } = $props();
@@ -39,16 +40,7 @@
     disabled={busy || report !== null}
     aria-busy={busy}
   >
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    <Icon name="rewind" size={16} />
     {report ? 'Rewound' : busy ? 'Rewinding…' : 'Rewind'}
   </button>
   <div class="result" role="status" bind:this={result}>

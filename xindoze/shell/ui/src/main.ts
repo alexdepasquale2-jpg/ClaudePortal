@@ -1,6 +1,6 @@
-import '@fontsource-variable/inter';
-import '@fontsource-variable/jetbrains-mono';
+import '../../../assets/fonts/fonts.css';
 import './app.css';
+import '../../../assets/canvas/wallpaper.css';
 import { mount } from 'svelte';
 import App from './App.svelte';
 
