@@ -207,6 +207,7 @@ pub fn schema_defs() -> Value {
             s(json!({"type": ty("button"), "label": {"type": "string"}, "action": action}), &["type", "label", "action"]),
             s(json!({"type": ty("input"), "label": {"type": "string"}, "kind": {"enum": ["text", "number", "date", "toggle"]}, "bind": {"type": "string"}}), &["type", "label", "kind", "bind"]),
             s(json!({"type": ty("chart"), "kind": {"enum": ["bar", "line"]}, "x": strs, "series": {"type": "array", "items": s(json!({"name": {"type": "string"}, "values": {"type": "array", "items": {"type": "number"}}}), &["name", "values"])}, "y": {"type": "string"}}), &["type", "kind", "x", "series"]),
+            s(json!({"type": ty("image"), "src": {"type": "string"}, "alt": {"type": "string"}}), &["type", "src", "alt"]),
             s(json!({"type": ty("progress"), "value": {"type": "number"}, "max": {"type": "number"}, "label": {"type": "string"}}), &["type", "value", "max", "label"]),
             s(json!({"type": ty("rewind"), "task_id": {"type": "string"}}), &["type", "task_id"])
         ]}

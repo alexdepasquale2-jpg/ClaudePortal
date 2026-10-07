@@ -1,0 +1,318 @@
+/* Xindoze Canvas theme (SPEC §14). Dark by default; light inverts Obsidian and Bone. */
+
+:root {
+  --obsidian: #0b0d10;
+  --bone: #ede8df;
+  --ember: #ff5a1f;
+  --biolume: #2bf5c4;
+
+  color-scheme: dark;
+  --bg: var(--obsidian);
+  --fg: var(--bone);
+  --surface: #13161b;
+  --surface-2: #1a1e24;
+  --line: #2a2f37;
+  /* Form-control borders need 3:1 against their surface. */
+  --control: #6a7180;
+  --muted: #a29d94;
+  /* Ember and Biolume as text on the page; fills use the raw palette. */
+  --ember-ink: #ff7a45;
+  --biolume-ink: var(--biolume);
+  --on-fill: var(--obsidian);
+  --focus: var(--biolume);
+  --grid: #262a31;
+  /* Progress fill: 3:1 against its track. */
+  --meter: var(--biolume);
+  /* Chart series, validated for this surface (house dataviz checks). */
+  --series-1: #1aa585;
+  --series-2: #e8551f;
+  --series-3: #9085e9;
+  --series-4: #c98500;
+
+  --font-ui: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --gap: 12px;
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: var(--bone);
+    --fg: var(--obsidian);
+    --surface: #f5f1ea;
+    --surface-2: #e6e0d5;
+    --line: #cfc7b8;
+    --control: #7d766a;
+    --muted: #5c574f;
+    --ember-ink: #a33a0d;
+    --biolume-ink: #08664e;
+    --focus: #08664e;
+    --grid: #ddd6c9;
+    --meter: #0b8f72;
+    --series-1: #0b8f72;
+    --series-2: #d9461a;
+    --series-3: #4a3aa7;
+    --series-4: #a86f00;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-wrap: anywhere;
+}
+
+#app {
+  height: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+p {
+  margin: 0;
+}
+
+code,
+pre,
+kbd,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+a {
+  color: var(--biolume-ink);
+  text-underline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--biolume) 35%, transparent);
+}
+
+/* Shared controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--control);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 550;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+
+.btn.primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-fill);
+}
+
+.btn.primary:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+
+.btn.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.btn.quiet:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--line);
+}
+
+@media (pointer: coarse) {
+  .btn {
+    min-height: var(--tap);
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--control);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.badge.good {
+  background: var(--biolume);
+  border-color: var(--biolume);
+  color: var(--on-fill);
+}
+
+.badge.alert {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-fill);
+}
+
+.badge.dim {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.dot.good {
+  background: var(--biolume);
+}
+
+.dot.alert {
+  background: var(--ember);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .badge,
+  .dot {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* System panels */
+
+.block {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.8125rem;
+}
+
+.sub {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}

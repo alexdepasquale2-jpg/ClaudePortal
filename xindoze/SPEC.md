@@ -502,7 +502,7 @@ The UI is a JSON tree. Each node is `{ "type": …, "id": …, …props, "childr
 | `image` | `src` (local blob ref), `alt` (required) |
 | `chart` | `kind` (bar/line), `series[]`, `x`, `y` |
 | `progress` | `value`, `max`, `label` |
-| `rewind` | `journal_ref` (the undo button for an action) |
+| `rewind` | `task_id` (the undo button for a task's actions) |
 
 The renderer refuses unknown types or missing required accessibility props. There is no raw HTML and no scripts.
 

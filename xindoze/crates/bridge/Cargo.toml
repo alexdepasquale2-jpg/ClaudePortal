@@ -8,3 +8,27 @@ license.workspace = true
 
 [dependencies]
 xz-types.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+globset = { version = "0.4", default-features = false }
+html5ever = "0.39"
+pdf-extract = "0.12"
+rmcp = { version = "3.5", default-features = false, features = ["client", "transport-child-process"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+# rustls with ring and bundled webpki roots: no OpenSSL, no OS verifier.
+# `~3.4`: the DNS guard uses ureq's resolver API, which is outside semver.
+ureq = { version = "~3.4", default-features = false, features = ["rustls", "gzip"] }
+url = "2"
+which = "8"
+
+[target.'cfg(any(windows, target_os = "macos", target_os = "linux"))'.dependencies]
+arboard = { version = "3", default-features = false }
+dirs = "6"
+notify-rust = { version = "4", default-features = false, features = ["z"] }
+open = "5"
+
+[dev-dependencies]
+tempfile.workspace = true

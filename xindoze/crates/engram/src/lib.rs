@@ -13,11 +13,13 @@ mod journal;
 mod kv;
 mod rewind;
 mod schema;
+#[cfg(test)]
+mod testutil;
 mod vectors;
 
-pub use blobs::BlobSnapshotter;
+pub use blobs::{BlobSnapshotter, DEFAULT_RETENTION_DAYS};
 pub use episodes::Episode;
-pub use facts::Fact;
+pub use facts::{Fact, FactRecord};
 pub use forget::ForgetReport;
 pub use journal::EventQuery;
 pub use rewind::{RewindItem, RewindReport, RewindSelector};
@@ -113,4 +115,30 @@ pub(crate) fn db_err(e: rusqlite::Error) -> XzError {
 /// Converts a row count or limit for SQL, saturating instead of wrapping.
 pub(crate) fn sql_limit(n: usize) -> i64 {
     i64::try_from(n).unwrap_or(i64::MAX)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn engram_is_shareable_across_threads() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<Engram>();
+    }
+
+    #[test]
+    fn open_creates_the_layout_and_reopens() {
+        let dir = tempfile::tempdir().unwrap();
+        let data = dir.path().join("data");
+        let e = Engram::open(&data, "pc").unwrap();
+        assert!(data.join("engram.db").is_file());
+        assert!(data.join("blobs").is_dir());
+        assert_eq!(e.device_id(), "pc");
+        e.kv_set("ns", "k", &serde_json::json!("v")).unwrap();
+        drop(e);
+        let e = Engram::open(&data, "pc").unwrap();
+        assert_eq!(e.kv_get("ns", "k").unwrap(), Some(serde_json::json!("v")));
+        assert!(Engram::open(&data, " ").is_err());
+    }
 }

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-labelledby="t">
+  <title id="t">Xindoze: an X drawn as a chromosome</title>
+  <defs>
+    <!-- One gradient in user space, so both chromatids blend seamlessly where they cross. -->
+    <linearGradient id="dna" x1="236" y1="176" x2="788" y2="848" gradientUnits="userSpaceOnUse">
+      <stop offset="0.12" stop-color="#FF5A1F"/>
+      <stop offset="0.5" stop-color="#F4B23A"/>
+      <stop offset="0.88" stop-color="#2BF5C4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="512" cy="512" r="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2BF5C4" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#2BF5C4" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Bands stay off the centromere so the crossing reads as one join. -->
+    <mask id="arms" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <circle cx="512" cy="512" r="120" fill="#000"/>
+    </mask>
+    <path id="left" d="M236 176 C552 330 552 694 236 848"/>
+    <path id="right" d="M788 176 C472 330 472 694 788 848"/>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="#0B0D10"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#glow)"/>
+  <!-- Two sister chromatids, ")" and "(", joined at the centromere. -->
+  <g fill="none" stroke="url(#dna)" stroke-width="128" stroke-linecap="round">
+    <use href="#left"/>
+    <use href="#right"/>
+  </g>
+  <g fill="none" stroke="#0B0D10" stroke-opacity="0.3" stroke-width="128" stroke-dasharray="10 92" stroke-dashoffset="-78" mask="url(#arms)">
+    <use href="#left"/>
+    <use href="#right"/>
+  </g>
+</svg>
