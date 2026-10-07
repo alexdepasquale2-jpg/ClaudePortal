@@ -16,7 +16,9 @@ pub mod tool;
 pub mod xui;
 
 pub use confirm::{AlwaysNo, AlwaysYes, AskInfo, Confirmer};
-pub use crystal::{CrystalCache, CrystalRun, ToolInvoker, Trace, TraceStep};
+pub use crystal::{
+    ContextAnchor, CrystalCache, CrystalQuery, CrystalRun, ToolInvoker, Trace, TraceStep,
+};
 pub use error::XzError;
 pub use journal::{Decision, JournalEvent, Verdict};
 pub use model::{
