@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-Android 12 fallback: full-screen Obsidian with the mark centered. -->
+    <style name="Theme.Xindoze.Splash" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:statusBarColor">@color/xindoze_splash_background</item>
+        <item name="android:navigationBarColor">@color/xindoze_splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
