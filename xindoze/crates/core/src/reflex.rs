@@ -465,6 +465,23 @@ fn hive(text: &str, trace: &[Trace]) -> Value {
         }
         return step("list peers", "hive.peers", json!({}));
     }
+    if text.contains("pair") {
+        if let Some(hit) = trace.iter().find(|step| step.tool == "hive.pair_begin") {
+            let code = hit
+                .body
+                .get("code")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            return done(
+                "show code",
+                vec![],
+                None,
+                Some(format!("Pairing code: {code}")),
+            );
+        }
+        let seed = text.split_whitespace().last().unwrap_or("pair");
+        return step("open pairing", "hive.pair_begin", json!({"seed": seed}));
+    }
     if text.contains("on my pc") || text.contains("answer this") {
         if let Some(hit) = trace.iter().find(|t| t.tool == "hive.run_on") {
             let notice = hit

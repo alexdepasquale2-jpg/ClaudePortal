@@ -7,6 +7,8 @@ capabilities:
   - hive.peers
   - hive.send
   - hive.run_on
+  - hive.pair_begin
+  - hive.pair_confirm
 ui: canvas
 author: Xindoze
 ---

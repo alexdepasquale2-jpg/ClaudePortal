@@ -617,6 +617,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pair_using_a_seed_shows_the_code() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let session = session(&home);
+        let hive = session
+            .genomes
+            .iter()
+            .find(|g| g.id == "xindoze.hive")
+            .unwrap()
+            .clone();
+        let outcome = session
+            .handle_genome(&hive, "pair using kitchen")
+            .await
+            .unwrap();
+        let say = outcome.say.expect("pairing says the code");
+        let code = say.strip_prefix("Pairing code: ").unwrap();
+        assert_eq!(code.len(), 8, "{say}");
+        assert!(outcome.steps.iter().any(|step| step.tool == "hive.pair_begin" && step.ok));
+    }
+
+    #[tokio::test]
     async fn the_sixth_identical_run_uses_a_crystal() {
         let dir = tempfile::tempdir().unwrap();
         let home = dir.path().join("home");
