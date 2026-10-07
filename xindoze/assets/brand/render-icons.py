@@ -366,10 +366,10 @@ def assert_sizes() -> None:
 
 
 def contact_sheet() -> None:
-    """A first sheet of the launcher, the foreground and the splash. Canvas icons are added later."""
-    sheet = Image.new("RGB", (1400, 980), (11, 13, 16))
+    """Launcher sizes, the splash, the wordmark and the Canvas icon set."""
+    sheet = Image.new("RGB", (1400, 1480), (11, 13, 16))
     draw = ImageDraw.Draw(sheet)
-    draw.text((32, 24), "Xindoze  launcher  +  splash", fill=(237, 232, 223))
+    draw.text((32, 24), "Xindoze  launcher, splash, wordmark, canvas icons", fill=(237, 232, 223))
 
     tiles = [
         (ICONS / "icon.png", 256),
@@ -404,13 +404,35 @@ def contact_sheet() -> None:
 
     word = BRAND / "wordmark.svg"
     if word.is_file():
-        im = render_svg_box(word, 720, 160)
-        sheet.paste(im, (280, 640), im)
+        png = cairosvg.svg2png(url=str(word), output_width=980)
+        im = Image.open(io.BytesIO(png)).convert("RGBA")
+        sheet.paste(im, (280, 560), im)
+
+    icon_dir = REPO / "shell" / "ui" / "src" / "lib" / "icons"
+    names = sorted(p.stem for p in icon_dir.glob("*.svg"))
+    draw.text((32, 760), "canvas icons  24 px grid, currentColor", fill=(237, 232, 223))
+    x, y = 32, 800
+    for name in names:
+        png = cairosvg.svg2png(url=str(icon_dir / f"{name}.svg"), output_width=48, output_height=48)
+        im = Image.open(io.BytesIO(png)).convert("RGBA")
+        # Bone ink so the strokes show on Obsidian.
+        solid = Image.new("RGBA", im.size, (237, 232, 223, 255))
+        solid.putalpha(im.getchannel("A"))
+        sheet.paste(solid, (x, y), solid)
+        draw.text((x, y + 50), name, fill=(162, 157, 148))
+        x += 120
+        if x > 1280:
+            x = 32
+            y += 96
 
     save_png(sheet.convert("RGBA"), BRAND / "preview.png")
 
 
 def main() -> None:
+    if "--preview" in sys.argv:
+        contact_sheet()
+        print("preview only")
+        return
     write_wordmarks()
 
     # Desktop and store tiles. Same file names and pixel sizes as the Tauri set.

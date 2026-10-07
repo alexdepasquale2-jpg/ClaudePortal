@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Icon from '../lib/icons/Icon.svelte';
   import { shell } from '../lib/shell.svelte';
 
   let input: HTMLInputElement | undefined = $state();
@@ -53,7 +54,7 @@
 
 <form class="bar" onsubmit={submit}>
   <label class="sr-only" for="intent">Intent</label>
-  <span class="prompt" aria-hidden="true">›</span>
+  <span class="prompt"><Icon name="summon" size={22} /></span>
   <input
     id="intent"
     bind:this={input}
@@ -72,16 +73,7 @@
     >Enter sends. Up arrow recalls earlier intents. Control Alt Space returns here.</span
   >
   <button class="send" type="submit" aria-label="Send" disabled={!value.trim()}>
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M5 12h13M13 6l6 6-6 6"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    <Icon name="send" size={20} />
   </button>
 </form>
 
@@ -103,9 +95,8 @@
   }
 
   .prompt {
+    display: flex;
     color: var(--ember-ink);
-    font-weight: 700;
-    font-size: 1.15rem;
   }
 
   input {

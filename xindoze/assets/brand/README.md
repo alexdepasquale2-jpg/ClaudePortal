@@ -51,3 +51,7 @@ Set the launch activity's theme to `Theme.Xindoze.Splash`. The system shows the 
 A full PNG set (720×1280, 1080×1920, 1080×2400, 1440×2560, 1440×3120) lives in `xindoze/assets/brand/splash/`. The same XML is mirrored under `splash/res/` for a copy that does not depend on the Tauri tree.
 
 Monochrome launcher mipmaps are not in the current Tauri icon tree. Use `mark-mono.svg` if a themed icon is added later; do not rename the existing mipmaps.
+
+## Canvas icons
+
+`xindoze/shell/ui/src/lib/icons/` is a 24 px stroke set. Every stroke is `currentColor`. Import `Icon` from `src/lib/icons`. Names: summon, mic (and voice), send, stream, rewind, pulse, egress, egress-out, hive, warden, charter, journal, cortex, settings, prime, forge, files, notes, web, sight, ancestors, allow, ask, deny, observe, act, commit. `genomeIcon` maps a Seed Bank id to its icon. The Intent Bar uses summon and send. Rewind uses rewind. The header mark is the same chromosome as `mark.svg`.
