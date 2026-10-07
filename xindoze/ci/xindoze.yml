@@ -172,7 +172,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build and boot the Native image in QEMU
+      - name: Stage the Native layout
+        env:
+          XZ_NATIVE_BUILD: "1"
+          XZ_NATIVE_LAYOUT_ONLY: "1"
         run: |
           bash native/build.sh x86_64
           bash native/test-boot.sh x86_64
