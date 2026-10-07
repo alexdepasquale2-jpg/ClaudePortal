@@ -8,7 +8,7 @@
 use std::io::{BufRead, Write};
 use std::process::ExitCode;
 
-use xinod::{confirmer, home_dir, open_session, render};
+use xinod::{confirmer, home_dir, open_session, render, warm_planner};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -30,6 +30,7 @@ async fn run() -> xz_types::Result<()> {
             .map_err(|err| xz_types::XzError::Other(err.to_string()));
     }
     let home = home_dir()?;
+    warm_planner().await;
     let session = open_session(&home, confirmer())?;
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
