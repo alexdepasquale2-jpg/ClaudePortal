@@ -392,11 +392,23 @@ impl Organ for HiveOrgan {
                 Risk::Act,
                 &[],
             ),
+            spec(
+                "hive.pair_begin",
+                "Show a pairing code from a shared seed.",
+                Risk::Act,
+                &[],
+            ),
+            spec(
+                "hive.pair_confirm",
+                "Pair the device that presents this code.",
+                Risk::Act,
+                &[],
+            ),
         ]
     }
 
     async fn call(&self, _ctx: &CallCtx, tool: &str, args: Value) -> Result<ToolOutput> {
-        let device = self.device.lock().unwrap_or_else(|err| err.into_inner());
+        let mut device = self.device.lock().unwrap_or_else(|err| err.into_inner());
         match tool {
             "hive.peers" => {
                 let peers: Vec<_> = device
@@ -440,7 +452,8 @@ impl Organ for HiveOrgan {
                 });
                 if paired {
                     Ok(ToolOutput::clean(json!({
-                        "delivered": true,
+                        "delivered": false,
+                        "reason": "paired, but this build has no socket yet",
                         "device": wanted,
                     })))
                 } else {
@@ -450,6 +463,30 @@ impl Organ for HiveOrgan {
                         "args": args,
                     })))
                 }
+            }
+            "hive.pair_begin" => {
+                let seed = require_str(&args, "seed", tool)?;
+                let code = device.begin_pairing(seed.as_bytes());
+                Ok(ToolOutput::clean(json!({"code": code.to_string()})))
+            }
+            "hive.pair_confirm" => {
+                let code = xz_hive::PairingCode::parse(require_str(&args, "code", tool)?)
+                    .map_err(|err| XzError::InvalidArgs(err.to_string()))?;
+                let name = require_str(&args, "name", tool)?;
+                let id = xz_hive::DeviceId::from_hex(require_str(&args, "id", tool)?)
+                    .map_err(|err| XzError::InvalidArgs(err.to_string()))?;
+                let identity = xz_hive::Identity::new(name, id)
+                    .map_err(|err| XzError::InvalidArgs(err.to_string()))?;
+                let stronger = args.get("stronger").and_then(Value::as_bool).unwrap_or(false);
+                let peer = device
+                    .confirm(&code, identity, stronger)
+                    .map_err(|err| XzError::InvalidArgs(err.to_string()))?;
+                Ok(ToolOutput::clean(json!({
+                    "paired": true,
+                    "name": peer.identity.name(),
+                    "id": peer.id().to_hex(),
+                    "stronger": peer.stronger,
+                })))
             }
             _ => Err(XzError::UnknownTool(tool.into())),
         }
@@ -529,5 +566,36 @@ mod tests {
     #[test]
     fn unix_epoch_is_1970() {
         assert_eq!(ymd(0), "1970-01-01");
+    }
+
+    #[tokio::test]
+    async fn pairing_sends_the_next_question_to_the_pc() {
+        let organ = HiveOrgan::new("phone");
+        let ctx = CallCtx::test();
+        let began = organ
+            .call(&ctx, "hive.pair_begin", json!({"seed": "kitchen"}))
+            .await
+            .unwrap();
+        let code = began.content["code"].as_str().unwrap();
+        let id = xz_hive::DeviceId::from_bytes([2; 32]).to_hex();
+        organ
+            .call(
+                &ctx,
+                "hive.pair_confirm",
+                json!({"code": code, "name": "PC", "id": id, "stronger": true}),
+            )
+            .await
+            .unwrap();
+        let ran = organ
+            .call(
+                &ctx,
+                "hive.run_on",
+                json!({"intent": "explain vaccines"}),
+            )
+            .await
+            .unwrap();
+        assert_eq!(ran.content["ran"], "peer");
+        assert_eq!(ran.content["peer"], "PC");
+        assert!(ran.content.get("notice").unwrap().is_null());
     }
 }
