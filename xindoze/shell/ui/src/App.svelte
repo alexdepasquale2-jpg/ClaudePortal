@@ -7,6 +7,7 @@
   import { onMount } from 'svelte';
   import { shell, type View } from './lib/shell.svelte';
   import AskDock from './components/AskDock.svelte';
+  import BootScreen from './components/BootScreen.svelte';
   import CanvasPane from './components/CanvasPane.svelte';
   import CharterList from './components/CharterList.svelte';
   import EgressBadge from './components/EgressBadge.svelte';
@@ -72,6 +73,7 @@
   </div>
 
   <p class="sr-only" role="status" aria-live="polite">{shell.announcement}</p>
+  <BootScreen />
 </div>
 
 <style>
