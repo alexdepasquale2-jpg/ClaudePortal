@@ -5,6 +5,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
+  import { cue } from '../lib/cues';
   import { shell } from '../lib/shell.svelte';
 
   let input: HTMLInputElement | undefined = $state();
@@ -44,8 +45,14 @@
   function onGlobalKeydown(e: KeyboardEvent) {
     if (e.ctrlKey && e.altKey && e.code === 'Space') {
       e.preventDefault();
-      input?.focus();
-      input?.select();
+      if (document.activeElement === input) {
+        input?.blur();
+        cue('intent-close');
+      } else {
+        input?.focus();
+        input?.select();
+        cue('intent-open');
+      }
     }
   }
 </script>

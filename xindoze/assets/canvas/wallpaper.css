@@ -1,0 +1,15 @@
+/* Desktop field. SVG covers any window; PNGs are the 1080p and 4K rasters. */
+
+body {
+  background-color: var(--bg);
+  background-image: url("./wallpaper-dark.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    background-image: url("./wallpaper-light.svg");
+  }
+}

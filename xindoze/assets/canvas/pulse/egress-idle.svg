@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Zero egress, idle">
+  <style>
+    .ring { fill: none; stroke: #EDE8DF; stroke-width: 2.5; opacity: 0.55; }
+    .dot { fill: #EDE8DF; opacity: 0.4; }
+    @media (prefers-color-scheme: light) {
+      .ring, .dot { stroke: #0B0D10; fill: #0B0D10; }
+      .ring { fill: none; }
+    }
+  </style>
+  <circle class="ring" cx="32" cy="32" r="18"/>
+  <circle class="dot" cx="32" cy="32" r="3.5"/>
+</svg>

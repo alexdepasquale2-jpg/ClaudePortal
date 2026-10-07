@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Xindoze canvas art</title>
+    <link rel="stylesheet" href="../fonts/fonts.css" />
+    <style>
+      html, body { margin: 0; background: #0b0d10; color: #ede8df; }
+      body { font-family: "Inter Variable", Inter, sans-serif; padding: 28px 32px 40px; width: 1280px; }
+      h1 { font-weight: 560; font-size: 28px; letter-spacing: -0.03em; margin: 0 0 4px; }
+      p.sub { margin: 0 0 18px; color: #a29d94; }
+      h2 { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #a29d94; font-weight: 600; margin: 20px 0 8px; }
+      .frames, .row, .cards { display: flex; gap: 12px; }
+      figure { margin: 0; flex: 1; }
+      figcaption { font-size: 12px; color: #a29d94; margin-top: 6px; }
+      .frames figure { background: #0b0d10; border: 1px solid #2a2f37; border-radius: 12px; overflow: hidden; }
+      .frames svg, .frames img { display: block; width: 100%; height: auto; }
+      img.wall { width: 100%; height: auto; display: block; border-radius: 10px; }
+      .card { flex: 1; background: #0b0d10; border: 1px solid #2a2f37; border-radius: 12px; padding: 14px; text-align: center; }
+      .card img { width: 220px; height: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Xindoze</h1>
+    <p class="sub">Boot, in four frames. Then the field and the empty states.</p>
+    <h2>Boot</h2>
+    <div class="frames">
+      <figure>
+        <svg viewBox="0 0 360 280"><rect width="360" height="280" fill="#0B0D10"/>
+          <circle cx="180" cy="128" r="54" fill="rgba(43,245,196,0.16)" stroke="#2BF5C4" stroke-width="3"/>
+          <circle cx="180" cy="128" r="78" fill="none" stroke="#2BF5C4" stroke-width="8" opacity="0.25"/>
+        </svg>
+        <figcaption>Cell</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 360 280"><rect width="360" height="280" fill="#0B0D10"/>
+          <ellipse cx="180" cy="128" rx="28" ry="78" fill="rgba(43,245,196,0.16)" stroke="#2BF5C4" stroke-width="3"/>
+          <ellipse cx="180" cy="128" rx="16" ry="10" fill="none" stroke="#2BF5C4" stroke-width="3"/>
+        </svg>
+        <figcaption>Pinch</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 360 280"><rect width="360" height="280" fill="#0B0D10"/>
+          <ellipse cx="180" cy="128" rx="22" ry="60" fill="none" stroke="#2BF5C4" stroke-width="2" opacity="0.35"/>
+          <g transform="translate(180 128) scale(0.16) translate(-512 -512)" fill="none" stroke-linecap="round" stroke-width="112">
+            <g transform="translate(70 0) scale(0.72)"><path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F"/></g>
+            <g transform="translate(-70 0) scale(0.72)"><path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4"/></g>
+          </g>
+        </svg>
+        <figcaption>Split</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 360 280"><rect width="360" height="280" fill="#0B0D10"/>
+          <g transform="translate(180 118) scale(0.2) translate(-512 -512)" fill="none" stroke-linecap="round">
+            <g filter="url(#bl)" stroke-width="150" opacity="0.55">
+              <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F"/>
+              <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4"/>
+            </g>
+            <path d="M236 176C552 330 552 694 236 848" stroke="#FF5A1F" stroke-width="112"/>
+            <path d="M788 176C472 330 472 694 788 848" stroke="#2BF5C4" stroke-width="112"/>
+            <g stroke="#0B0D10" stroke-width="16" stroke-linecap="butt">
+              <path d="M424.6 236.2L327.2 318.1"/><path d="M501.6 348.4L382.9 400.7"/>
+              <path d="M501.6 675.6L382.9 623.3"/><path d="M424.6 787.8L327.2 705.9"/>
+              <path d="M696.8 318.1L599.4 236.2"/><path d="M641.1 400.7L522.4 348.4"/>
+              <path d="M641.1 623.3L522.4 675.6"/><path d="M696.8 705.9L599.4 787.8"/>
+            </g>
+            <circle cx="512" cy="512" r="48" fill="#0B0D10"/>
+            <circle cx="512" cy="512" r="30" fill="#EDE8DF"/>
+          </g>
+          <text x="180" y="258" text-anchor="middle" fill="#EDE8DF" font-family="Inter Variable, Inter, sans-serif" font-size="16" font-weight="560">Xindoze has evolved.</text>
+          <defs><filter id="bl"><feGaussianBlur stdDeviation="6"/></filter></defs>
+        </svg>
+        <figcaption>Final X</figcaption>
+      </figure>
+    </div>
+    <h2>Wallpaper</h2>
+    <div class="row">
+      <figure><img class="wall" src="wallpaper-dark-1920x1080.png" alt="Dark wallpaper" /><figcaption>Dark</figcaption></figure>
+      <figure><img class="wall" src="wallpaper-light-1920x1080.png" alt="Light wallpaper" /><figcaption>Light</figcaption></figure>
+    </div>
+    <h2>Empty states</h2>
+    <div class="cards">
+      <div class="card"><img src="empty/stream.svg" alt="" /><figcaption>Stream</figcaption></div>
+      <div class="card"><img src="empty/canvas.svg" alt="" /><figcaption>Canvas</figcaption></div>
+      <div class="card"><img src="empty/journal.svg" alt="" /><figcaption>Journal</figcaption></div>
+    </div>
+  </body>
+</html>
