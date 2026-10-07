@@ -1,5 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
+  "mainBinaryName": "xindoze-canvas",
   "app": {
     "windows": [
       {
@@ -23,7 +24,7 @@
         "type": "downloadBootstrapper"
       },
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "perMachine"
       }
     }
   }
