@@ -65,7 +65,7 @@ path.write_text(updated)
 print("launch theme set to Theme.Xindoze.Splash")
 PY
 
-npx --yes @tauri-apps/cli@2 android build --debug --apk --target aarch64
+npx --yes @tauri-apps/cli@2.12.1 android build --debug --apk --target aarch64 --ignore-version-mismatches
 
 mapfile -t APKS < <(find "$SHELL_DIR/src-tauri/gen/android" -path '*outputs/apk/debug/*.apk' -name '*.apk' -printf '%T@ %p\n' | sort -n | awk '{print $2}')
 if [[ ${#APKS[@]} -eq 0 ]]; then
