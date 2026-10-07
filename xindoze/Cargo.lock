@@ -6284,6 +6284,10 @@ dependencies = [
 name = "xinod"
 version = "0.1.0"
 dependencies = [
+ "tokio",
+ "xz-core",
+ "xz-cortex",
+ "xz-genome",
  "xz-types",
 ]
 
@@ -6322,7 +6326,17 @@ dependencies = [
 name = "xz-core"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "xz-bridge",
+ "xz-cortex",
+ "xz-engram",
+ "xz-genome",
  "xz-types",
+ "xz-warden",
 ]
 
 [[package]]

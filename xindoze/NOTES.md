@@ -8,3 +8,4 @@
 - openWakeWord's pretrained models are non-commercial. That is why v1 uses push-to-talk.
 - v1 scope (safety): no Android AccessibilityService, no input injection into other apps, no silent SMS (message_send opens a prefilled draft the user sends), and Windows Takeover is fullscreen-at-login rather than replacing the Explorer shell. These match common spyware/persistence patterns and need their own design review.
 - Subagent concurrency is CPUs-2 = 2 per workflow here; the org spend limit was hit once with two workflows running. Run one workflow at a time.
+- "Looks safe to delete" is judged on the path relative to the home folder. Matching `/tmp/` on an absolute path marks every file safe when the fixture home lives under `/tmp`.

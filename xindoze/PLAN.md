@@ -1,5 +1,9 @@
 # PLAN
 
+## STATUS (2026-10-07)
+
+Phase 0 loop is on the base Engram, Genome, Bridge and Seed Bank. `xz` routes an intent, plans with the offline reflex (or Ollama when `XZ_MODEL` is set), and journals every call. Phase 1 slice: Context Pager, Files act + Rewind, Charter rules that hold a later send. Shell stays a workspace member; this host has no WebKit, so local `cargo test` excludes `xindoze-shell`. Next: Crystal fast path (phase 3), Hive pairing (phase 2), Android.
+
 Build all phases (0–4) as one Rust workspace + Tauri shell. Contracts first, then parallel waves.
 
 1. `crates/types`: shared contracts (tools, taint, models, plan, XUI, journal, confirm, crystal). Written by hand first.

@@ -8,3 +8,15 @@ license.workspace = true
 
 [dependencies]
 xz-types.workspace = true
+xz-warden = { path = "../warden" }
+xz-engram = { path = "../engram" }
+xz-genome = { path = "../genome" }
+xz-bridge = { path = "../bridge" }
+xz-cortex = { path = "../cortex" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
