@@ -42,11 +42,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "windows": {
-      "nsis": {
-        "installMode": "currentUser"
-      }
-    },
     "android": {
       "minSdkVersion": 29
     }

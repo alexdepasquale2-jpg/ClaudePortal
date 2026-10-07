@@ -221,7 +221,9 @@ export type Command =
   | 'journal'
   | 'charter'
   | 'blob'
-  | 'open_url';
+  | 'open_url'
+  | 'conquest'
+  | 'set_conquest';
 
 /** How calls reach a runtime: Tauri IPC, or the in-browser mock. */
 export interface Transport {
@@ -313,6 +315,23 @@ export async function blob(ref: string): Promise<string | null> {
 /** `open_url`: open an http(s) link in the system browser, outside the Canvas. */
 export function openUrl(url: string): Promise<void> {
   return call('open_url', { url });
+}
+
+/** Desktop conquest mode. `supported` is false on Android. */
+export interface ConquestView {
+  supported: boolean;
+  mode: 'guest' | 'overlay' | 'takeover';
+  undo: string;
+}
+
+/** `conquest`: current Guest / Overlay / Takeover mode. */
+export function conquest(): Promise<ConquestView> {
+  return call('conquest');
+}
+
+/** `set_conquest`: switch mode. Takeover installs a reversible login hook. */
+export function setConquest(mode: ConquestView['mode']): Promise<ConquestView> {
+  return call('set_conquest', { mode });
 }
 
 /** Subscribe to `xz://ask`. Resolves to an unsubscribe function. */

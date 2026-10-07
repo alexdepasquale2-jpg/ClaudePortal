@@ -181,6 +181,9 @@ class Mock {
       case 'open_url':
         globalThis.open?.(str(a.url), '_blank', 'noopener,noreferrer');
         return null;
+      case 'conquest':
+      case 'set_conquest':
+        return { supported: false, mode: 'guest', undo: '' };
     }
   }
 

@@ -14,6 +14,7 @@
   import IntentBar from './components/IntentBar.svelte';
   import JournalList from './components/JournalList.svelte';
   import Logo from './components/Logo.svelte';
+  import ConquestPanel from './components/ConquestPanel.svelte';
   import PulsePanel from './components/PulsePanel.svelte';
   import Stream from './components/Stream.svelte';
 
@@ -59,6 +60,7 @@
 
   <aside class="system-col" class:active={shell.view === 'system'} aria-label="System">
     <PulsePanel />
+    <ConquestPanel />
     <GenomesList />
     <CharterList />
     <JournalList />
