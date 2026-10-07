@@ -1,27 +1,37 @@
-//! In-memory crystal cache (SPEC §3.9).
+//! Crystal cache (SPEC §3.9).
 //!
 //! QuickJS synthesis is TODO(phase 3). Until then a crystal is a versioned
-//! plan template: the tool names in order, argument JSON with slot holes,
-//! and the intent skeleton those holes were copied from.
+//! plan template. It skips the planner only when the command and its context
+//! both match: organism, charter generation, grants, taint, the wording, and
+//! plan-choosing values that were not typed (search root, destination,
+//! recipient, account).
 //!
-//! A string argument becomes a slot when it is a run of whole words copied
-//! out of the intent. Other JSON stays literal. Five successful traces with
-//! the same organism, the same tool sequence, and the same skeleton promote
-//! one crystal. `try_run` fills the holes from a new intent and invokes the
-//! tools. Alignment failure is a miss (`None`); a tool error is `Some(Err)`
-//! and flags that crystal for re-evolution. [`Crystal::source`] and [`diff`]
-//! render the plan as text. They do not run JavaScript.
+//! Paths that came back from tools are not frozen into the template and are
+//! not part of the key. `try_run` re-derives them by running the crystal's
+//! tools, in order, through the caller's invoker (the Warden, in the session).
+//! A miss is `None`. A tool error is `Some(Err)` and flags that crystal.
+//! [`Crystal::source`] and [`diff`] render the plan as text. They do not run
+//! JavaScript.
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::BTreeSet;
 use std::sync::Mutex;
 use xz_types::xui::Node;
-use xz_types::{CrystalCache, CrystalRun, ToolCall, ToolInvoker, Trace, TraceStep, XzError};
+use xz_types::{
+    ContextAnchor, CrystalCache, CrystalQuery, CrystalRun, Grant, Taint, ToolCall, ToolInvoker,
+    Trace, TraceStep, XzError,
+};
 
 /// Plan-template format. Bump when the serialized shape changes.
-pub const TEMPLATE_VERSION: u32 = 1;
+///
+/// Version 2 keys on command and context. Version 1 keyed on organism,
+/// wording skeleton and tool skeleton, which skipped on wording alone.
+pub const TEMPLATE_VERSION: u32 = 2;
+
+/// Engram namespace for promoted crystals. In-progress counts stay in memory.
+pub const CRYSTAL_NS: &str = "crystal";
 
 /// Successful runs with one skeleton required before a crystal is promoted.
 pub const RUNS_TO_PROMOTE: usize = 5;
@@ -33,6 +43,14 @@ pub struct Crystal {
     pub version: u32,
     pub crystal_id: String,
     pub organism: String,
+    /// Exact command this crystal replays.
+    pub wording: String,
+    /// Charter generation of the policy in force when it was learned.
+    pub charter_generation: String,
+    pub grants: Vec<Grant>,
+    /// Untyped plan-choosing values (search root, destination, recipient, account).
+    pub anchors: Vec<ContextAnchor>,
+    pub taint: Taint,
     pub plan: PlanTemplate,
 }
 
@@ -95,7 +113,12 @@ pub enum TemplateValue {
     Slot {
         id: u32,
     },
-    /// A string that mixes literal text with slot holes (say / UI copy).
+    /// A value copied from an earlier step's output. Re-derived on replay.
+    FromOutput {
+        step: u32,
+        pointer: String,
+    },
+    /// A string that mixes literal text with holes (say / UI copy).
     Text {
         parts: Vec<TextPart>,
     },
@@ -123,8 +146,17 @@ pub struct TextTemplate {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum TextPart {
-    Lit { text: String },
-    Slot { id: u32 },
+    Lit {
+        text: String,
+    },
+    Slot {
+        id: u32,
+    },
+    /// Text copied from an earlier step's output.
+    FromOutput {
+        step: u32,
+        pointer: String,
+    },
 }
 
 /// Process-local crystal cache. `observe` and `try_run` share it.
@@ -146,6 +178,9 @@ struct Bucket {
     key: String,
     organism: String,
     intent: String,
+    charter_generation: String,
+    grants: Vec<Grant>,
+    taint: Taint,
     prototype: Abstract,
     traces: Vec<Trace>,
     done: bool,
@@ -153,37 +188,11 @@ struct Bucket {
 
 #[derive(Debug)]
 struct Abstract {
+    anchors: Vec<ContextAnchor>,
     pattern: Vec<PatternToken>,
-    slots: Vec<String>,
     steps: Vec<StepTemplate>,
     say: Option<TextTemplate>,
     ui: Option<TemplateValue>,
-}
-
-#[derive(Clone, Debug)]
-struct Word {
-    text: String,
-    start: usize,
-    end: usize,
-}
-
-#[derive(Clone, Debug)]
-struct Span {
-    start: usize,
-    end: usize,
-    text: String,
-    id: u32,
-}
-
-struct Binder {
-    queues: BTreeMap<String, VecDeque<u32>>,
-}
-
-struct Prepared {
-    crystal_id: String,
-    say: Option<String>,
-    ui: Option<Node>,
-    calls: Vec<ToolCall>,
 }
 
 impl Default for MemoryCrystalCache {
@@ -208,6 +217,29 @@ impl MemoryCrystalCache {
         self.lock().crystals.clone()
     }
 
+    /// Loads promoted crystals. Version 1 records, and any record without a
+    /// charter generation or wording, are ignored so a wording-only key
+    /// cannot skip the planner after a restart.
+    pub fn import(&self, crystals: &[Crystal]) {
+        let mut state = self.lock();
+        for crystal in crystals {
+            if crystal.version != TEMPLATE_VERSION {
+                continue;
+            }
+            if crystal.charter_generation.is_empty() || crystal.wording.is_empty() {
+                continue;
+            }
+            if state
+                .crystals
+                .iter()
+                .any(|have| have.crystal_id == crystal.crystal_id)
+            {
+                continue;
+            }
+            state.crystals.push(crystal.clone());
+        }
+    }
+
     /// Crystals flagged for re-evolution after a tool error, first failure first.
     /// The crystal stays in the cache; the caller still takes the fluid path.
     pub fn flagged(&self) -> Vec<String> {
@@ -230,43 +262,78 @@ impl MemoryCrystalCache {
 impl CrystalCache for MemoryCrystalCache {
     async fn try_run(
         &self,
-        organism: &str,
-        intent: &str,
+        query: &CrystalQuery,
         tools: &dyn ToolInvoker,
     ) -> Option<Result<CrystalRun, XzError>> {
-        let prepared = {
+        let crystal = {
             let state = self.lock();
             let mut order: Vec<usize> = (0..state.crystals.len())
-                .filter(|&i| state.crystals[i].organism == organism)
+                .filter(|&i| matches_query(&state.crystals[i], query))
                 .collect();
             order.sort_by(|&a, &b| {
                 specificity(&state.crystals[b])
                     .cmp(&specificity(&state.crystals[a]))
                     .then(a.cmp(&b))
             });
-            order
-                .into_iter()
-                .find_map(|i| prepare(&state.crystals[i], intent))
+            order.first().map(|&i| state.crystals[i].clone())
         }?;
 
-        let mut steps = Vec::with_capacity(prepared.calls.len());
-        for call in prepared.calls {
+        let mut outputs: Vec<Value> = Vec::new();
+        let mut steps = Vec::with_capacity(crystal.plan.steps.len());
+        for step in &crystal.plan.steps {
+            let Some(args) = fill(&step.args, &outputs) else {
+                self.note_failure(&crystal.crystal_id);
+                return Some(Err(XzError::Other(
+                    "crystal could not re-derive a tool argument".into(),
+                )));
+            };
+            let call = ToolCall {
+                tool: step.tool.clone(),
+                args,
+            };
             match tools.invoke(call.clone()).await {
-                Ok(output) => steps.push(TraceStep {
-                    call,
-                    ok: true,
-                    output: output.content,
-                }),
+                Ok(output) => {
+                    outputs.push(output.content.clone());
+                    steps.push(TraceStep {
+                        call,
+                        ok: true,
+                        output: output.content,
+                    });
+                }
                 Err(err) => {
-                    self.note_failure(&prepared.crystal_id);
+                    self.note_failure(&crystal.crystal_id);
                     return Some(Err(err));
                 }
             }
         }
+        let say = match &crystal.plan.say {
+            Some(text) => match fill_text(&text.parts, &outputs) {
+                Some(text) => Some(text),
+                None => {
+                    self.note_failure(&crystal.crystal_id);
+                    return Some(Err(XzError::Other(
+                        "crystal could not re-derive its reply".into(),
+                    )));
+                }
+            },
+            None => None,
+        };
+        let ui = match &crystal.plan.ui {
+            Some(template) => match fill_ui(template, &outputs) {
+                Some(node) => Some(node),
+                None => {
+                    self.note_failure(&crystal.crystal_id);
+                    return Some(Err(XzError::Other(
+                        "crystal could not re-derive its canvas".into(),
+                    )));
+                }
+            },
+            None => None,
+        };
         Some(Ok(CrystalRun {
-            crystal_id: prepared.crystal_id,
-            say: prepared.say,
-            ui: prepared.ui,
+            crystal_id: crystal.crystal_id,
+            say,
+            ui,
             steps,
         }))
     }
@@ -278,7 +345,7 @@ impl CrystalCache for MemoryCrystalCache {
         let Some(abs) = abstract_trace(trace) else {
             return;
         };
-        let Some(key) = signature_key(&trace.organism, &abs.pattern, &abs.steps) else {
+        let Some(key) = context_key(trace, &abs.anchors) else {
             return;
         };
         let mut state = self.lock();
@@ -305,7 +372,10 @@ impl CrystalCache for MemoryCrystalCache {
         state.buckets.push(Bucket {
             key,
             organism: trace.organism.clone(),
-            intent: trace.intent.clone(),
+            intent: wording(&trace.intent),
+            charter_generation: trace.charter_generation.clone(),
+            grants: canon_grants(&trace.grants),
+            taint: trace.taint.clone(),
             prototype: abs,
             traces: vec![trace.clone()],
             done: false,
@@ -313,14 +383,8 @@ impl CrystalCache for MemoryCrystalCache {
     }
 }
 
-fn specificity(crystal: &Crystal) -> (usize, usize, usize) {
-    let fixed = crystal
-        .plan
-        .pattern
-        .iter()
-        .filter(|t| matches!(t, PatternToken::Word { .. }))
-        .count();
-    (fixed, crystal.plan.slots.len(), crystal.plan.steps.len())
+fn specificity(crystal: &Crystal) -> (usize, usize) {
+    (crystal.anchors.len(), crystal.plan.steps.len())
 }
 
 fn crystal_from(bucket: &Bucket, key: &str) -> Crystal {
@@ -329,11 +393,16 @@ fn crystal_from(bucket: &Bucket, key: &str) -> Crystal {
         version: TEMPLATE_VERSION,
         crystal_id: crystal_id(&bucket.organism, &abs.steps, key),
         organism: bucket.organism.clone(),
+        wording: bucket.intent.clone(),
+        charter_generation: bucket.charter_generation.clone(),
+        grants: bucket.grants.clone(),
+        anchors: abs.anchors.clone(),
+        taint: bucket.taint.clone(),
         plan: PlanTemplate {
             version: TEMPLATE_VERSION,
             intent: bucket.intent.clone(),
             pattern: abs.pattern.clone(),
-            slots: abs.slots.clone(),
+            slots: Vec::new(),
             steps: abs.steps.clone(),
             say: abs.say.clone(),
             ui: abs.ui.clone(),
@@ -363,309 +432,232 @@ fn fnv1a64(data: &str) -> u64 {
 }
 
 #[derive(Serialize)]
-struct Sig<'a> {
+struct Key<'a> {
     version: u32,
     organism: &'a str,
-    pattern: &'a [PatternToken],
-    steps: &'a [StepTemplate],
+    wording: &'a str,
+    charter_generation: &'a str,
+    grants: &'a [Grant],
+    anchors: &'a [ContextAnchor],
+    taint: &'a Taint,
 }
 
-fn signature_key(
-    organism: &str,
-    pattern: &[PatternToken],
-    steps: &[StepTemplate],
-) -> Option<String> {
-    serde_json::to_string(&Sig {
+fn wording(intent: &str) -> String {
+    intent.trim().to_string()
+}
+
+/// Organism, charter, grants, untyped plan-choosing values, taint and wording.
+/// Tool results and the tool skeleton are not in this key.
+fn context_key(trace: &Trace, anchors: &[ContextAnchor]) -> Option<String> {
+    let grants = canon_grants(&trace.grants);
+    let wording = wording(&trace.intent);
+    serde_json::to_string(&Key {
         version: TEMPLATE_VERSION,
-        organism,
-        pattern,
-        steps,
+        organism: &trace.organism,
+        wording: &wording,
+        charter_generation: &trace.charter_generation,
+        grants: &grants,
+        anchors,
+        taint: &trace.taint,
     })
     .ok()
 }
 
+fn canon_grants(grants: &[Grant]) -> Vec<Grant> {
+    let mut grants = grants.to_vec();
+    for grant in &mut grants {
+        grant.resources.sort();
+    }
+    grants.sort_by(|a, b| a.tool.cmp(&b.tool).then(a.resources.cmp(&b.resources)));
+    grants.dedup();
+    grants
+}
+
+fn matches_query(crystal: &Crystal, query: &CrystalQuery) -> bool {
+    crystal.version == TEMPLATE_VERSION
+        && crystal.organism == query.organism
+        && crystal.charter_generation == query.charter_generation
+        && crystal.taint == query.taint
+        && crystal.wording == wording(&query.intent)
+        && crystal.grants == canon_grants(&query.grants)
+        && crystal
+            .anchors
+            .iter()
+            .all(|anchor| query.anchors.iter().any(|have| have == anchor))
+}
+
 fn replays(abs: &Abstract, trace: &Trace) -> bool {
-    let Some(values) = align(&abs.pattern, &trace.intent) else {
+    if abs.steps.len() != trace.steps.len() {
         return false;
-    };
-    let Some(calls) = fill_calls(&abs.steps, &values) else {
-        return false;
-    };
-    let recorded: Vec<ToolCall> = trace.steps.iter().map(|s| s.call.clone()).collect();
-    calls == recorded
+    }
+    let mut outputs = Vec::new();
+    for (step, recorded) in abs.steps.iter().zip(&trace.steps) {
+        let Some(args) = fill(&step.args, &outputs) else {
+            return false;
+        };
+        if step.tool != recorded.call.tool || args != recorded.call.args {
+            return false;
+        }
+        outputs.push(recorded.output.clone());
+    }
+    true
 }
 
-fn prepare(crystal: &Crystal, intent: &str) -> Option<Prepared> {
-    let values = align(&crystal.plan.pattern, intent).or_else(|| loose(&crystal.plan, intent))?;
-    if values.len() != crystal.plan.slots.len() {
-        return None;
-    }
-    let say = match &crystal.plan.say {
-        Some(text) => Some(fill_text(&text.parts, &values)?),
-        None => None,
-    };
-    let ui = match &crystal.plan.ui {
-        Some(template) => Some(fill_ui(template, &values)?),
-        None => None,
-    };
-    Some(Prepared {
-        crystal_id: crystal.crystal_id.clone(),
-        say,
-        ui,
-        calls: fill_calls(&crystal.plan.steps, &values)?,
-    })
-}
-
-/// The intent still contains every prototype slot value, so the stored
-/// values can be filled without aligning a new skeleton. An empty slot
-/// list does not match: that would hit every intent.
-fn loose(plan: &PlanTemplate, intent: &str) -> Option<Vec<String>> {
-    if plan.slots.is_empty() {
-        return None;
-    }
-    plan.slots
-        .iter()
-        .all(|slot| !slot.is_empty() && intent.contains(slot.as_str()))
-        .then(|| plan.slots.clone())
+struct Binding {
+    step: u32,
+    pointer: String,
+    text: String,
 }
 
 fn abstract_trace(trace: &Trace) -> Option<Abstract> {
-    let words = split_words(&trace.intent);
-    let strings = arg_strings(&trace.steps);
-    let spans = place_spans(&trace.intent, &words, &strings);
-    let pattern = pattern_from(&words, &spans);
-    let mut slots = vec![String::new(); spans.len()];
-    for span in &spans {
-        let id = span.id as usize;
-        if id >= slots.len() {
-            return None;
-        }
-        slots[id] = span.text.clone();
-    }
-    let mut binder = Binder::from_spans(&spans);
-    let steps = trace
-        .steps
-        .iter()
-        .map(|step| StepTemplate {
+    let anchors = collect_anchors(&trace.intent, &trace.steps);
+    let mut prior = Vec::new();
+    let mut steps = Vec::with_capacity(trace.steps.len());
+    for step in &trace.steps {
+        steps.push(StepTemplate {
             tool: step.call.tool.clone(),
-            args: templatize(&step.call.args, &mut binder),
-        })
-        .collect();
-    let pairs: Vec<(u32, &str)> = slots
-        .iter()
-        .enumerate()
-        .map(|(i, text)| (i as u32, text.as_str()))
-        .collect();
-    let say = trace.say.as_ref().map(|text| TextTemplate {
-        parts: split_by_slots(text, &pairs),
-    });
+            args: templatize(&step.call.args, &prior),
+        });
+        prior.push(step.output.clone());
+    }
+    let bindings = output_bindings(&trace.steps);
+    let say = trace
+        .say
+        .as_ref()
+        .map(|text| templatize_prose(text, &bindings));
     let ui = trace
         .ui
         .as_ref()
-        .and_then(|node| templatize_ui(node, &pairs, &slots));
+        .and_then(|node| templatize_ui(node, trace, &bindings));
     Some(Abstract {
-        pattern,
-        slots,
+        anchors,
+        pattern: split_words(&trace.intent)
+            .into_iter()
+            .map(|word| PatternToken::Word { text: word })
+            .collect(),
         steps,
         say,
         ui,
     })
 }
 
-fn templatize_ui(node: &Node, pairs: &[(u32, &str)], slots: &[String]) -> Option<TemplateValue> {
-    let value = serde_json::to_value(node).ok()?;
-    let template = templatize_text_tree(&value, pairs);
-    let filled = fill(&template, slots)?;
-    let back: Node = serde_json::from_value(filled).ok()?;
-    (back == *node).then_some(template)
-}
-
-fn arg_strings(steps: &[TraceStep]) -> Vec<String> {
-    let mut out = Vec::new();
+fn collect_anchors(intent: &str, steps: &[TraceStep]) -> Vec<ContextAnchor> {
+    let mut anchors = BTreeSet::new();
+    let mut prior = Vec::new();
     for step in steps {
-        collect_strings(&step.call.args, &mut out);
+        walk_anchors(
+            &step.call.tool,
+            &step.call.args,
+            intent,
+            &prior,
+            &mut anchors,
+        );
+        prior.push(step.output.clone());
     }
-    out
+    anchors.into_iter().collect()
 }
 
-fn collect_strings(value: &Value, out: &mut Vec<String>) {
+fn walk_anchors(
+    tool: &str,
+    value: &Value,
+    intent: &str,
+    prior: &[Value],
+    out: &mut BTreeSet<ContextAnchor>,
+) {
     match value {
-        Value::String(text) if !text.is_empty() && !text.chars().all(char::is_whitespace) => {
-            out.push(text.clone());
-        }
         Value::Array(items) => {
             for item in items {
-                collect_strings(item, out);
+                walk_anchors(tool, item, intent, prior, out);
             }
         }
         Value::Object(map) => {
-            let mut keys: Vec<&String> = map.keys().collect();
-            keys.sort();
-            for key in keys {
-                collect_strings(&map[key], out);
+            for (key, child) in map {
+                if let Some(text) = child.as_str() {
+                    if let Some(field) = anchor_field(tool, key) {
+                        if !text.is_empty()
+                            && !intent.contains(text)
+                            && find_exact(prior, text).is_none()
+                        {
+                            out.insert(ContextAnchor {
+                                field: field.into(),
+                                value: text.into(),
+                            });
+                        }
+                    }
+                }
+                walk_anchors(tool, child, intent, prior, out);
             }
         }
         _ => {}
     }
 }
 
-fn place_spans(intent: &str, words: &[Word], args: &[String]) -> Vec<Span> {
-    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
-    for arg in args {
-        if arg.is_empty() || !intent.contains(arg.as_str()) {
-            continue;
-        }
-        *counts.entry(arg.clone()).or_default() += 1;
-    }
-    let mut strings: Vec<String> = counts.keys().cloned().collect();
-    strings.sort_by(|a, b| b.len().cmp(&a.len()).then(a.cmp(b)));
-
-    let mut claimed = vec![false; words.len()];
-    let mut spans = Vec::new();
-    for text in strings {
-        let mut from = 0;
-        let mut left = counts[&text];
-        while left > 0 {
-            let Some((start, end)) = find_span(intent, words, &text, &claimed, from) else {
-                break;
-            };
-            for slot in &mut claimed[start..end] {
-                *slot = true;
-            }
-            spans.push(Span {
-                start,
-                end,
-                text: intent[words[start].start..words[end - 1].end].to_string(),
-                id: 0,
-            });
-            from = end;
-            left -= 1;
-        }
-    }
-    spans.sort_by_key(|span| (span.start, span.end));
-    for (id, span) in spans.iter_mut().enumerate() {
-        span.id = id as u32;
-    }
-    spans
-}
-
-fn find_span(
-    intent: &str,
-    words: &[Word],
-    slot: &str,
-    claimed: &[bool],
-    from: usize,
-) -> Option<(usize, usize)> {
-    for start in from..words.len() {
-        if claimed[start] {
-            continue;
-        }
-        for end in (start + 1)..=words.len() {
-            if claimed[end - 1] {
-                break;
-            }
-            let slice = &intent[words[start].start..words[end - 1].end];
-            if slice == slot {
-                return Some((start, end));
-            }
-            if slice.len() >= slot.len() {
-                break;
-            }
-        }
-    }
-    None
-}
-
-fn pattern_from(words: &[Word], spans: &[Span]) -> Vec<PatternToken> {
-    let mut tokens = Vec::new();
-    let mut index = 0;
-    let mut spans_at = 0;
-    while index < words.len() {
-        if spans_at < spans.len() && spans[spans_at].start == index {
-            let span = &spans[spans_at];
-            tokens.push(PatternToken::Slot {
-                id: span.id,
-                width: (span.end - span.start) as u32,
-            });
-            index = span.end;
-            spans_at += 1;
-        } else {
-            tokens.push(PatternToken::Word {
-                text: words[index].text.clone(),
-            });
-            index += 1;
-        }
-    }
-    tokens
-}
-
-impl Binder {
-    fn from_spans(spans: &[Span]) -> Self {
-        let mut ordered = spans.to_vec();
-        ordered.sort_by_key(|span| span.start);
-        let mut queues: BTreeMap<String, VecDeque<u32>> = BTreeMap::new();
-        for span in ordered {
-            queues.entry(span.text).or_default().push_back(span.id);
-        }
-        Self { queues }
-    }
-
-    fn take(&mut self, text: &str) -> TemplateValue {
-        let Some(queue) = self.queues.get_mut(text) else {
-            return TemplateValue::String {
-                value: text.to_string(),
-            };
-        };
-        if queue.is_empty() {
-            return TemplateValue::String {
-                value: text.to_string(),
-            };
-        }
-        let id = if queue.len() == 1 {
-            queue[0]
-        } else {
-            queue.pop_front().unwrap_or(0)
-        };
-        TemplateValue::Slot { id }
+fn anchor_field(tool: &str, key: &str) -> Option<&'static str> {
+    match key {
+        "root" | "search_root" | "folder" | "cwd" => Some("root"),
+        "dest" | "destination" => Some("destination"),
+        "recipient" => Some("recipient"),
+        "account" => Some("account"),
+        "to" if destination_tool(tool) => Some("destination"),
+        "to" => Some("recipient"),
+        _ => None,
     }
 }
 
-fn templatize(value: &Value, binder: &mut Binder) -> TemplateValue {
+fn destination_tool(tool: &str) -> bool {
+    tool == "fs.move" || tool == "fs.copy" || tool.ends_with(".move") || tool.ends_with(".copy")
+}
+
+fn templatize(value: &Value, prior: &[Value]) -> TemplateValue {
     match value {
         Value::Null => TemplateValue::Null,
         Value::Bool(v) => TemplateValue::Bool { value: *v },
         Value::Number(n) => TemplateValue::Number { value: n.clone() },
-        Value::String(text) => binder.take(text),
+        Value::String(text) => match find_exact(prior, text) {
+            Some((step, pointer)) => TemplateValue::FromOutput { step, pointer },
+            None => TemplateValue::String {
+                value: text.clone(),
+            },
+        },
         Value::Array(items) => TemplateValue::Array {
-            items: items.iter().map(|item| templatize(item, binder)).collect(),
+            items: items.iter().map(|item| templatize(item, prior)).collect(),
         },
         Value::Object(map) => TemplateValue::Object {
-            fields: sorted_fields(map, binder),
+            fields: sorted_fields(map, prior),
         },
     }
 }
 
-fn sorted_fields(map: &Map<String, Value>, binder: &mut Binder) -> Vec<Field> {
+fn sorted_fields(map: &Map<String, Value>, prior: &[Value]) -> Vec<Field> {
     let mut keys: Vec<&String> = map.keys().collect();
     keys.sort();
     keys.into_iter()
         .map(|key| Field {
             name: key.clone(),
-            value: templatize(&map[key], binder),
+            value: templatize(&map[key], prior),
         })
         .collect()
 }
 
-fn templatize_text_tree(value: &Value, slots: &[(u32, &str)]) -> TemplateValue {
+fn templatize_ui(node: &Node, trace: &Trace, bindings: &[Binding]) -> Option<TemplateValue> {
+    let value = serde_json::to_value(node).ok()?;
+    let template = templatize_text_tree(&value, bindings);
+    let outputs: Vec<Value> = trace.steps.iter().map(|step| step.output.clone()).collect();
+    let filled = fill(&template, &outputs)?;
+    let back: Node = serde_json::from_value(filled).ok()?;
+    (back == *node).then_some(template)
+}
+
+fn templatize_text_tree(value: &Value, bindings: &[Binding]) -> TemplateValue {
     match value {
         Value::Null => TemplateValue::Null,
         Value::Bool(v) => TemplateValue::Bool { value: *v },
         Value::Number(n) => TemplateValue::Number { value: n.clone() },
-        Value::String(text) => templatize_string_value(text, slots),
+        Value::String(text) => templatize_string_value(text, bindings),
         Value::Array(items) => TemplateValue::Array {
             items: items
                 .iter()
-                .map(|item| templatize_text_tree(item, slots))
+                .map(|item| templatize_text_tree(item, bindings))
                 .collect(),
         },
         Value::Object(map) => {
@@ -676,7 +668,7 @@ fn templatize_text_tree(value: &Value, slots: &[(u32, &str)]) -> TemplateValue {
                     .into_iter()
                     .map(|key| Field {
                         name: key.clone(),
-                        value: templatize_text_tree(&map[key], slots),
+                        value: templatize_text_tree(&map[key], bindings),
                     })
                     .collect(),
             }
@@ -684,39 +676,107 @@ fn templatize_text_tree(value: &Value, slots: &[(u32, &str)]) -> TemplateValue {
     }
 }
 
-fn templatize_string_value(text: &str, slots: &[(u32, &str)]) -> TemplateValue {
-    match split_by_slots(text, slots).as_slice() {
+fn templatize_string_value(text: &str, bindings: &[Binding]) -> TemplateValue {
+    match split_by_bindings(text, bindings).as_slice() {
         [] => TemplateValue::String {
             value: String::new(),
         },
         [TextPart::Lit { text }] => TemplateValue::String {
             value: text.clone(),
         },
-        [TextPart::Slot { id }] => TemplateValue::Slot { id: *id },
+        [TextPart::FromOutput { step, pointer }] => TemplateValue::FromOutput {
+            step: *step,
+            pointer: pointer.clone(),
+        },
         parts => TemplateValue::Text {
             parts: parts.to_vec(),
         },
     }
 }
 
-fn split_by_slots(input: &str, slots: &[(u32, &str)]) -> Vec<TextPart> {
+fn templatize_prose(text: &str, bindings: &[Binding]) -> TextTemplate {
+    TextTemplate {
+        parts: split_by_bindings(text, bindings),
+    }
+}
+
+fn output_bindings(steps: &[TraceStep]) -> Vec<Binding> {
+    let mut bindings = Vec::new();
+    for (index, step) in steps.iter().enumerate() {
+        collect_bindings(index as u32, &step.output, "", &mut bindings);
+    }
+    bindings.retain(|binding| binding.text.chars().count() >= 4);
+    bindings.sort_by(|a, b| b.text.len().cmp(&a.text.len()).then(a.text.cmp(&b.text)));
+    bindings
+}
+
+fn collect_bindings(step: u32, value: &Value, pointer: &str, out: &mut Vec<Binding>) {
+    match value {
+        Value::String(text) if !text.is_empty() => out.push(Binding {
+            step,
+            pointer: pointer.to_string(),
+            text: text.clone(),
+        }),
+        Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                collect_bindings(step, item, &format!("{pointer}/{index}"), out);
+            }
+        }
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            for key in keys {
+                collect_bindings(
+                    step,
+                    &map[key],
+                    &format!("{pointer}/{}", escape_pointer(key)),
+                    out,
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+fn find_exact(prior: &[Value], text: &str) -> Option<(u32, String)> {
+    if text.is_empty() {
+        return None;
+    }
+    for (index, output) in prior.iter().enumerate() {
+        let mut found = Vec::new();
+        collect_bindings(index as u32, output, "", &mut found);
+        if let Some(hit) = found.into_iter().find(|binding| binding.text == text) {
+            return Some((hit.step, hit.pointer));
+        }
+    }
+    None
+}
+
+fn escape_pointer(text: &str) -> String {
+    text.replace('~', "~0").replace('/', "~1")
+}
+
+fn split_by_bindings(input: &str, bindings: &[Binding]) -> Vec<TextPart> {
     let mut parts = Vec::new();
     let mut literal = String::new();
     let mut index = 0;
     while index < input.len() {
         let rest = &input[index..];
-        let found = slots
+        let found = bindings
             .iter()
-            .filter(|(_, text)| !text.is_empty() && rest.starts_with(text))
-            .max_by(|a, b| a.1.len().cmp(&b.1.len()).then(b.0.cmp(&a.0)));
-        if let Some((id, text)) = found {
+            .filter(|binding| !binding.text.is_empty() && rest.starts_with(&binding.text))
+            .max_by(|a, b| a.text.len().cmp(&b.text.len()).then(b.step.cmp(&a.step)));
+        if let Some(binding) = found {
             if !literal.is_empty() {
                 parts.push(TextPart::Lit {
                     text: std::mem::take(&mut literal),
                 });
             }
-            parts.push(TextPart::Slot { id: *id });
-            index += text.len();
+            parts.push(TextPart::FromOutput {
+                step: binding.step,
+                pointer: binding.pointer.clone(),
+            });
+            index += binding.text.len();
         } else {
             let ch = rest.chars().next().unwrap_or('\0');
             if ch == '\0' {
@@ -732,164 +792,50 @@ fn split_by_slots(input: &str, slots: &[(u32, &str)]) -> Vec<TextPart> {
     parts
 }
 
-fn split_words(intent: &str) -> Vec<Word> {
-    let mut words = Vec::new();
-    let mut start: Option<usize> = None;
-    for (index, ch) in intent.char_indices() {
-        if ch.is_whitespace() {
-            if let Some(from) = start.take() {
-                words.push(Word {
-                    text: intent[from..index].to_string(),
-                    start: from,
-                    end: index,
-                });
-            }
-        } else if start.is_none() {
-            start = Some(index);
-        }
-    }
-    if let Some(from) = start {
-        words.push(Word {
-            text: intent[from..].to_string(),
-            start: from,
-            end: intent.len(),
-        });
-    }
-    words
+fn split_words(intent: &str) -> Vec<String> {
+    intent.split_whitespace().map(str::to_string).collect()
 }
 
-/// Fill `pattern` from `intent`.
-///
-/// Fixed words must match, in order. A hole that sits between two fixed
-/// words takes the words between those anchors (one or more). A hole at the
-/// end takes exactly its prototype width, so extra trailing words miss
-/// instead of being glued onto the slot. Consecutive holes use the
-/// prototype widths. The whole intent is consumed, or this returns `None`.
-fn align(pattern: &[PatternToken], intent: &str) -> Option<Vec<String>> {
-    let words = split_words(intent);
-    let count = pattern
-        .iter()
-        .filter_map(|token| match token {
-            PatternToken::Slot { id, .. } => Some(*id as usize + 1),
-            PatternToken::Word { .. } => None,
-        })
-        .max()
-        .unwrap_or(0);
-    let mut slots = vec![None; count];
-    if !walk(pattern, &words, intent, &mut slots) {
-        return None;
-    }
-    slots.into_iter().collect()
-}
-
-fn walk(pat: &[PatternToken], words: &[Word], intent: &str, slots: &mut [Option<String>]) -> bool {
-    if pat.is_empty() {
-        return words.is_empty();
-    }
-    match &pat[0] {
-        PatternToken::Word { text } => {
-            words.first().is_some_and(|word| word.text == *text)
-                && walk(&pat[1..], &words[1..], intent, slots)
-        }
-        PatternToken::Slot { id, width } => {
-            let id = *id as usize;
-            if id >= slots.len() {
-                return false;
-            }
-            if matches!(pat.get(1), Some(PatternToken::Word { .. })) {
-                let Some(PatternToken::Word { text: next }) = pat.get(1) else {
-                    return false;
-                };
-                for taken in 1..words.len() {
-                    if words[taken].text != *next {
-                        continue;
-                    }
-                    let previous = slots[id].clone();
-                    slots[id] = Some(word_slice(intent, &words[..taken]));
-                    if walk(&pat[1..], &words[taken..], intent, slots) {
-                        return true;
-                    }
-                    slots[id] = previous;
-                }
-                false
-            } else if matches!(pat.get(1), Some(PatternToken::Slot { .. })) {
-                let width = *width as usize;
-                if width == 0 || words.len() < width {
-                    return false;
-                }
-                let previous = slots[id].clone();
-                slots[id] = Some(word_slice(intent, &words[..width]));
-                if walk(&pat[1..], &words[width..], intent, slots) {
-                    true
-                } else {
-                    slots[id] = previous;
-                    false
-                }
-            } else {
-                let width = *width as usize;
-                if width == 0 || words.len() != width {
-                    return false;
-                }
-                slots[id] = Some(word_slice(intent, words));
-                true
-            }
-        }
-    }
-}
-
-fn word_slice(intent: &str, words: &[Word]) -> String {
-    match words {
-        [] => String::new(),
-        [only] => intent[only.start..only.end].to_string(),
-        [first, .., last] => intent[first.start..last.end].to_string(),
-    }
-}
-
-fn fill_calls(steps: &[StepTemplate], values: &[String]) -> Option<Vec<ToolCall>> {
-    steps
-        .iter()
-        .map(|step| {
-            Some(ToolCall {
-                tool: step.tool.clone(),
-                args: fill(&step.args, values)?,
-            })
-        })
-        .collect()
-}
-
-fn fill_text(parts: &[TextPart], values: &[String]) -> Option<String> {
+fn fill_text(parts: &[TextPart], outputs: &[Value]) -> Option<String> {
     let mut out = String::new();
     for part in parts {
         match part {
             TextPart::Lit { text } => out.push_str(text),
-            TextPart::Slot { id } => out.push_str(values.get(*id as usize)?),
+            TextPart::Slot { .. } => return None,
+            TextPart::FromOutput { step, pointer } => {
+                let value = outputs.get(*step as usize)?.pointer(pointer)?;
+                out.push_str(value.as_str()?);
+            }
         }
     }
     Some(out)
 }
 
-fn fill_ui(template: &TemplateValue, values: &[String]) -> Option<Node> {
-    serde_json::from_value(fill(template, values)?).ok()
+fn fill_ui(template: &TemplateValue, outputs: &[Value]) -> Option<Node> {
+    serde_json::from_value(fill(template, outputs)?).ok()
 }
 
-fn fill(template: &TemplateValue, values: &[String]) -> Option<Value> {
+fn fill(template: &TemplateValue, outputs: &[Value]) -> Option<Value> {
     Some(match template {
         TemplateValue::Null => Value::Null,
         TemplateValue::Bool { value } => Value::Bool(*value),
         TemplateValue::Number { value } => Value::Number(value.clone()),
         TemplateValue::String { value } => Value::String(value.clone()),
-        TemplateValue::Slot { id } => Value::String(values.get(*id as usize)?.clone()),
-        TemplateValue::Text { parts } => Value::String(fill_text(parts, values)?),
+        TemplateValue::Slot { .. } => return None,
+        TemplateValue::FromOutput { step, pointer } => {
+            outputs.get(*step as usize)?.pointer(pointer)?.clone()
+        }
+        TemplateValue::Text { parts } => Value::String(fill_text(parts, outputs)?),
         TemplateValue::Array { items } => Value::Array(
             items
                 .iter()
-                .map(|item| fill(item, values))
+                .map(|item| fill(item, outputs))
                 .collect::<Option<_>>()?,
         ),
         TemplateValue::Object { fields } => {
             let mut map = Map::new();
             for field in fields {
-                map.insert(field.name.clone(), fill(&field.value, values)?);
+                map.insert(field.name.clone(), fill(&field.value, outputs)?);
             }
             Value::Object(map)
         }
@@ -903,9 +849,35 @@ impl Crystal {
             format!("version: {}", self.version),
             format!("id: {}", self.crystal_id),
             format!("organism: {}", self.organism),
+            format!("wording: {}", self.wording),
+            format!("charter: {}", self.charter_generation),
+            format!(
+                "grants: {}",
+                self.grants
+                    .iter()
+                    .map(|grant| grant.tool.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
+            format!(
+                "taint: {}",
+                if self.taint.is_clean() {
+                    "clean".to_string()
+                } else {
+                    self.taint
+                        .sources
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(",")
+                }
+            ),
             format!("intent: {}", self.plan.intent),
             format!("pattern: {}", render_pattern(&self.plan.pattern)),
         ];
+        for anchor in &self.anchors {
+            lines.push(format!("anchor {}: {}", anchor.field, anchor.value));
+        }
         for (id, slot) in self.plan.slots.iter().enumerate() {
             lines.push(format!("slot {id}: {slot}"));
         }
@@ -953,6 +925,9 @@ fn render_parts(parts: &[TextPart]) -> String {
         match part {
             TextPart::Lit { text } => out.push_str(text),
             TextPart::Slot { id } => out.push_str(&format!("{{{id}}}")),
+            TextPart::FromOutput { step, pointer } => {
+                out.push_str(&format!("<out {step} {pointer}>"));
+            }
         }
     }
     out
@@ -967,6 +942,7 @@ fn render_template(value: &TemplateValue) -> String {
             serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string())
         }
         TemplateValue::Slot { id } => format!("{{{id}}}"),
+        TemplateValue::FromOutput { step, pointer } => format!("<out {step} {pointer}>"),
         TemplateValue::Text { parts } => render_parts(parts),
         TemplateValue::Array { items } => {
             let inner = items
@@ -1032,45 +1008,74 @@ fn line_diff(before: &str, after: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{align, *};
+    use super::*;
     use async_trait::async_trait;
     use serde_json::{Value, json};
     use std::sync::Mutex;
     use xz_types::xui::Node;
-    use xz_types::{ToolCall, ToolInvoker, ToolOutput, Trace, TraceStep, XzError};
+    use xz_types::{
+        ContextAnchor, CrystalQuery, Grant, Taint, ToolCall, ToolInvoker, ToolOutput, Trace,
+        TraceStep, XzError,
+    };
 
-    fn trace(organism: &str, intent: &str, steps: &[(&str, Value)], ok: bool) -> Trace {
+    fn grants() -> Vec<Grant> {
+        vec![Grant {
+            tool: "fs.*".into(),
+            resources: vec![],
+        }]
+    }
+
+    fn query(organism: &str, intent: &str) -> CrystalQuery {
+        CrystalQuery {
+            organism: organism.into(),
+            intent: intent.into(),
+            charter_generation: "gen".into(),
+            grants: grants(),
+            taint: Taint::none(),
+            anchors: vec![ContextAnchor {
+                field: "root".into(),
+                value: "~".into(),
+            }],
+        }
+    }
+
+    fn trace(organism: &str, intent: &str, steps: &[(&str, Value, Value)]) -> Trace {
         Trace {
             organism: organism.into(),
             intent: intent.into(),
             steps: steps
                 .iter()
-                .map(|(tool, args)| TraceStep {
+                .map(|(tool, args, output)| TraceStep {
                     call: ToolCall {
                         tool: (*tool).into(),
                         args: args.clone(),
                     },
                     ok: true,
-                    output: Value::Null,
+                    output: output.clone(),
                 })
                 .collect(),
-            ok,
+            ok: true,
             say: None,
             ui: None,
+            charter_generation: "gen".into(),
+            grants: grants(),
+            taint: Taint::none(),
         }
     }
 
-    fn read_trace(i: u32) -> Trace {
-        let name = format!("f{i}.txt");
+    fn read_trace() -> Trace {
         let mut traced = trace(
             "notes",
-            &format!("read {name}"),
-            &[("fs.read", json!({"path": name, "mode": "keep", "n": 2}))],
-            true,
+            "read notes.txt",
+            &[(
+                "fs.read",
+                json!({"path": "notes.txt", "mode": "keep", "n": 2}),
+                json!({"bytes": 3}),
+            )],
         );
-        traced.say = Some(format!("opened {name}"));
+        traced.say = Some("opened notes.txt".into());
         traced.ui = Some(Node::Text {
-            text: format!("file {name}"),
+            text: "file notes.txt".into(),
         });
         traced
     }
@@ -1117,37 +1122,38 @@ mod tests {
         }
     }
 
-    async fn observe_reads(cache: &MemoryCrystalCache, n: u32) {
-        for i in 0..n {
-            cache.observe(&read_trace(i)).await;
+    async fn observe_same(cache: &MemoryCrystalCache, n: usize) {
+        for _ in 0..n {
+            cache.observe(&read_trace()).await;
         }
     }
 
     #[tokio::test]
     async fn four_traces_do_not_promote_the_fifth_does() {
         let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 4).await;
+        observe_same(&cache, 4).await;
         assert!(cache.crystals().is_empty());
         assert!(
             cache
-                .try_run("notes", "read zed.txt", &Mock::new(vec![]))
+                .try_run(&query("notes", "read notes.txt"), &Mock::new(vec![]))
                 .await
                 .is_none()
         );
 
-        cache.observe(&read_trace(4)).await;
+        cache.observe(&read_trace()).await;
         let crystals = cache.crystals();
         assert_eq!(crystals.len(), 1);
         assert_eq!(crystals[0].version, TEMPLATE_VERSION);
-        assert_eq!(crystals[0].plan.version, TEMPLATE_VERSION);
+        assert_eq!(crystals[0].wording, "read notes.txt");
+        assert_eq!(crystals[0].charter_generation, "gen");
         assert!(
             crystals[0]
                 .crystal_id
-                .starts_with("crystal:notes:fs.read:v1:")
+                .starts_with("crystal:notes:fs.read:v2:")
         );
 
         let again = MemoryCrystalCache::new();
-        observe_reads(&again, 5).await;
+        observe_same(&again, 5).await;
         assert_eq!(again.crystals()[0].crystal_id, crystals[0].crystal_id);
 
         let json = serde_json::to_string(&crystals[0]).unwrap();
@@ -1158,41 +1164,38 @@ mod tests {
     #[tokio::test]
     async fn a_failed_trace_does_not_count() {
         let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 4).await;
-        let mut failed = read_trace(9);
+        observe_same(&cache, 4).await;
+        let mut failed = read_trace();
         failed.ok = false;
         cache.observe(&failed).await;
         assert!(cache.crystals().is_empty());
-        cache.observe(&read_trace(4)).await;
+        cache.observe(&read_trace()).await;
         assert_eq!(cache.crystals().len(), 1);
     }
 
     #[tokio::test]
     async fn different_tool_order_does_not_match() {
         let cache = MemoryCrystalCache::new();
-        for i in 0..4 {
-            let name = format!("f{i}.txt");
+        for _ in 0..4 {
             cache
                 .observe(&trace(
                     "notes",
-                    &format!("copy {name}"),
+                    "copy notes.txt",
                     &[
-                        ("fs.read", json!({"path": name})),
-                        ("fs.write", json!({"path": name})),
+                        ("fs.read", json!({"path": "notes.txt"}), json!("read")),
+                        ("fs.write", json!({"path": "notes.txt"}), json!("wrote")),
                     ],
-                    true,
                 ))
                 .await;
         }
         cache
             .observe(&trace(
                 "notes",
-                "copy other.txt",
+                "copy notes.txt",
                 &[
-                    ("fs.write", json!({"path": "other.txt"})),
-                    ("fs.read", json!({"path": "other.txt"})),
+                    ("fs.write", json!({"path": "notes.txt"}), json!("wrote")),
+                    ("fs.read", json!({"path": "notes.txt"}), json!("read")),
                 ],
-                true,
             ))
             .await;
         assert!(cache.crystals().is_empty());
@@ -1200,296 +1203,454 @@ mod tests {
         cache
             .observe(&trace(
                 "notes",
-                "copy last.txt",
+                "copy notes.txt",
                 &[
-                    ("fs.read", json!({"path": "last.txt"})),
-                    ("fs.write", json!({"path": "last.txt"})),
+                    ("fs.read", json!({"path": "notes.txt"}), json!("read")),
+                    ("fs.write", json!({"path": "notes.txt"}), json!("wrote")),
                 ],
-                true,
             ))
             .await;
         assert_eq!(cache.crystals().len(), 1);
 
         let mock = Mock::new(vec![json!("read"), json!("wrote")]);
         let run = cache
-            .try_run("notes", "copy zed.txt", &mock)
+            .try_run(&query("notes", "copy notes.txt"), &mock)
             .await
             .unwrap()
             .unwrap();
         assert_eq!(run.steps[0].call.tool, "fs.read");
         assert_eq!(run.steps[1].call.tool, "fs.write");
-        assert_eq!(run.steps[0].call.args, json!({"path": "zed.txt"}));
-        assert_eq!(run.steps[1].call.args, json!({"path": "zed.txt"}));
+        assert_eq!(run.steps[0].call.args, json!({"path": "notes.txt"}));
+        assert!(
+            cache
+                .try_run(&query("notes", "copy other.txt"), &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]
-    async fn try_run_fills_slots_and_calls_tools() {
+    async fn the_same_command_and_context_replays_tools() {
         let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 5).await;
-        let mock = Mock::new(vec![json!({"bytes": 3})]);
+        observe_same(&cache, 5).await;
+        let mock = Mock::new(vec![json!({"bytes": 9})]);
         let run = cache
-            .try_run("notes", "read zed.txt", &mock)
+            .try_run(&query("notes", "read notes.txt"), &mock)
             .await
             .unwrap()
             .unwrap();
-
         assert_eq!(run.crystal_id, cache.crystals()[0].crystal_id);
-        assert_eq!(run.steps.len(), 1);
-        assert_eq!(run.steps[0].call.tool, "fs.read");
         assert_eq!(
             run.steps[0].call.args,
-            json!({"path": "zed.txt", "mode": "keep", "n": 2})
+            json!({"path": "notes.txt", "mode": "keep", "n": 2})
         );
-        assert!(run.steps[0].ok);
-        assert_eq!(run.steps[0].output, json!({"bytes": 3}));
-        assert_eq!(run.say.as_deref(), Some("opened zed.txt"));
+        assert_eq!(run.say.as_deref(), Some("opened notes.txt"));
         assert_eq!(
             run.ui,
             Some(Node::Text {
-                text: "file zed.txt".into()
+                text: "file notes.txt".into()
             })
         );
         assert_eq!(mock.seen().len(), 1);
     }
 
     #[tokio::test]
-    async fn bounded_slot_takes_the_new_words_between_anchors() {
+    async fn similar_words_or_a_different_file_do_not_skip() {
+        let cache = MemoryCrystalCache::new();
+        observe_same(&cache, 5).await;
+        for intent in [
+            "read other.txt",
+            "please read notes.txt now",
+            "the notes mention notes.txt",
+        ] {
+            assert!(
+                cache
+                    .try_run(&query("notes", intent), &Mock::new(vec![]))
+                    .await
+                    .is_none(),
+                "{intent}"
+            );
+        }
+        assert!(
+            cache
+                .try_run(&query("other", "read notes.txt"), &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn charter_grants_and_taint_must_match() {
+        let cache = MemoryCrystalCache::new();
+        observe_same(&cache, 5).await;
+
+        let mut other_charter = query("notes", "read notes.txt");
+        other_charter.charter_generation = "later".into();
+        assert!(
+            cache
+                .try_run(&other_charter, &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+
+        let mut other_grants = query("notes", "read notes.txt");
+        other_grants.grants = vec![Grant {
+            tool: "fs.read".into(),
+            resources: vec!["~/Private/**".into()],
+        }];
+        assert!(
+            cache
+                .try_run(&other_grants, &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+
+        let mut tainted = query("notes", "read notes.txt");
+        tainted.taint = Taint::from_source("msg:sms");
+        assert!(cache.try_run(&tainted, &Mock::new(vec![])).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn an_untyped_search_root_is_part_of_the_key() {
         let cache = MemoryCrystalCache::new();
         for i in 0..5 {
-            let body = format!("hello{i}");
-            let to = format!("ada{i}");
+            let path = format!("/tmp/f{i}.bin");
+            let mut traced = trace(
+                "files",
+                "find the largest files",
+                &[(
+                    "fs.search",
+                    json!({"root": "~", "sort": "size", "limit": 10}),
+                    json!({"matches": [{"path": path}]}),
+                )],
+            );
+            traced.say = Some(format!("Largest files:\n{path}"));
+            cache.observe(&traced).await;
+        }
+        assert_eq!(cache.crystals().len(), 1);
+        let stored = serde_json::to_string(&cache.crystals()[0]).unwrap();
+        assert!(!stored.contains("/tmp/f0.bin"), "{stored}");
+        assert!(
+            cache.crystals()[0]
+                .anchors
+                .iter()
+                .any(|anchor| { anchor.field == "root" && anchor.value == "~" })
+        );
+
+        let mock = Mock::new(vec![json!({"matches": [{"path": "/tmp/new.bin"}]})]);
+        let run = cache
+            .try_run(&query("files", "find the largest files"), &mock)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(run.steps[0].call.args["root"], json!("~"));
+        assert_eq!(run.say.as_deref(), Some("Largest files:\n/tmp/new.bin"));
+
+        let mut downloads = query("files", "find the largest files");
+        downloads.anchors = vec![ContextAnchor {
+            field: "root".into(),
+            value: "~/Downloads".into(),
+        }];
+        assert!(
+            cache
+                .try_run(&downloads, &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_folder_the_plan_chose_does_not_match_home() {
+        let cache = MemoryCrystalCache::new();
+        for _ in 0..5 {
+            cache
+                .observe(&trace(
+                    "files",
+                    "find the documents",
+                    &[(
+                        "fs.search",
+                        json!({"root": "~/Downloads", "name_glob": "*.docx"}),
+                        json!({"matches": []}),
+                    )],
+                ))
+                .await;
+        }
+        assert_eq!(cache.crystals().len(), 1);
+        assert!(
+            cache.crystals()[0]
+                .anchors
+                .iter()
+                .any(|anchor| anchor.field == "root" && anchor.value == "~/Downloads")
+        );
+        assert!(
+            cache
+                .try_run(&query("files", "find the documents"), &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+        let mut there = query("files", "find the documents");
+        there.anchors.push(ContextAnchor {
+            field: "root".into(),
+            value: "~/Downloads".into(),
+        });
+        assert!(
+            cache
+                .try_run(&there, &Mock::new(vec![json!({"matches": []})]))
+                .await
+                .unwrap()
+                .is_ok()
+        );
+    }
+
+    #[tokio::test]
+    async fn tool_results_do_not_keep_log_a_glass_from_hitting() {
+        let cache = MemoryCrystalCache::new();
+        for i in 0..5 {
+            cache
+                .observe(&trace(
+                    "hydrate",
+                    "log a glass",
+                    &[(
+                        "engram.kv_write",
+                        json!({"key": "day/2026-10-07", "value": {"glasses": 1}}),
+                        json!({"stored": i}),
+                    )],
+                ))
+                .await;
+        }
+        assert_eq!(cache.crystals().len(), 1);
+        let stored = serde_json::to_string(&cache.crystals()[0]).unwrap();
+        assert!(!stored.contains("\"stored\""), "{stored}");
+        let run = cache
+            .try_run(
+                &query("hydrate", "log a glass"),
+                &Mock::new(vec![json!({"stored": 99})]),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(run.steps[0].call.args["key"], json!("day/2026-10-07"));
+        assert_eq!(run.steps[0].output, json!({"stored": 99}));
+    }
+
+    #[tokio::test]
+    async fn tool_returned_paths_are_rederived_not_frozen() {
+        let cache = MemoryCrystalCache::new();
+        for i in 0..5 {
+            let path = format!("/home/a{i}.pdf");
+            cache
+                .observe(&trace(
+                    "files",
+                    "file the invoices",
+                    &[
+                        (
+                            "fs.search",
+                            json!({"root": "~", "contains": "invoice"}),
+                            json!({"matches": [{"path": path}]}),
+                        ),
+                        (
+                            "fs.move",
+                            json!({"from": path, "to": "~/Taxes 2026"}),
+                            json!({"ok": true}),
+                        ),
+                    ],
+                ))
+                .await;
+        }
+        let crystal = &cache.crystals()[0];
+        let stored = serde_json::to_string(crystal).unwrap();
+        assert!(!stored.contains("/home/a0.pdf"), "{stored}");
+        assert!(
+            stored.contains("<out")
+                || stored.contains("FromOutput")
+                || stored.contains("from_output"),
+            "{stored}"
+        );
+        assert!(
+            crystal
+                .anchors
+                .iter()
+                .any(|anchor| anchor.field == "destination" && anchor.value == "~/Taxes 2026")
+        );
+
+        let mut home_only = query("files", "file the invoices");
+        assert!(
+            cache
+                .try_run(&home_only, &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+
+        home_only.anchors.push(ContextAnchor {
+            field: "destination".into(),
+            value: "~/Taxes 2026".into(),
+        });
+        let mock = Mock::new(vec![
+            json!({"matches": [{"path": "/home/fresh.pdf"}]}),
+            json!({"ok": true}),
+        ]);
+        let run = cache.try_run(&home_only, &mock).await.unwrap().unwrap();
+        assert_eq!(run.steps[1].call.args["from"], json!("/home/fresh.pdf"));
+        assert_eq!(run.steps[1].call.args["to"], json!("~/Taxes 2026"));
+        assert_eq!(mock.seen()[0].tool, "fs.search");
+        assert_eq!(mock.seen()[1].tool, "fs.move");
+    }
+
+    #[tokio::test]
+    async fn a_typed_recipient_stays_in_the_wording() {
+        let cache = MemoryCrystalCache::new();
+        for _ in 0..5 {
             cache
                 .observe(&trace(
                     "mail",
-                    &format!("send {body} to {to}"),
-                    &[("mail.send", json!({"body": body, "to": to}))],
-                    true,
-                ))
-                .await;
-        }
-        let mock = Mock::new(vec![json!(true)]);
-        let run = cache
-            .try_run("mail", "send good morning to bob", &mock)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            run.steps[0].call.args,
-            json!({"body": "good morning", "to": "bob"})
-        );
-    }
-
-    #[tokio::test]
-    async fn the_same_slot_text_in_two_places_fills_independently() {
-        let cache = MemoryCrystalCache::new();
-        for i in 0..5 {
-            let name = format!("a{i}.txt");
-            cache
-                .observe(&trace(
-                    "hash",
-                    &format!("hash {name} and hash {name}"),
-                    &[
-                        ("h.hash", json!({"text": name})),
-                        ("h.hash", json!({"text": name})),
-                    ],
-                    true,
-                ))
-                .await;
-        }
-        let mock = Mock::new(vec![json!(1), json!(2)]);
-        let run = cache
-            .try_run("hash", "hash b.txt and hash c.txt", &mock)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(run.steps[0].call.args, json!({"text": "b.txt"}));
-        assert_eq!(run.steps[1].call.args, json!({"text": "c.txt"}));
-        assert_eq!(run.steps[0].output, json!(1));
-        assert_eq!(run.steps[1].output, json!(2));
-    }
-
-    #[tokio::test]
-    async fn repeated_slot_is_shared_when_the_intent_mentions_it_once() {
-        let cache = MemoryCrystalCache::new();
-        for i in 0..5 {
-            let name = format!("a{i}.txt");
-            cache
-                .observe(&trace(
-                    "hash",
-                    &format!("hash {name} twice"),
-                    &[
-                        ("h.hash", json!({"text": name})),
-                        ("h.hash", json!({"text": name})),
-                    ],
-                    true,
-                ))
-                .await;
-        }
-        let run = cache
-            .try_run("hash", "hash b.txt twice", &Mock::new(vec![]))
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(run.steps[0].call.args, json!({"text": "b.txt"}));
-        assert_eq!(run.steps[1].call.args, json!({"text": "b.txt"}));
-    }
-
-    #[tokio::test]
-    async fn extra_words_reuse_slot_values_when_the_skeleton_remains() {
-        let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 5).await;
-        let run = cache
-            .try_run("notes", "please read f0.txt now", &Mock::new(vec![]))
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(run.steps[0].call.args["path"], json!("f0.txt"));
-        assert_eq!(run.steps[0].call.args["mode"], json!("keep"));
-
-        let mentioned = cache
-            .try_run("notes", "the notes mention f0.txt", &Mock::new(vec![]))
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(mentioned.steps[0].call.args["path"], json!("f0.txt"));
-    }
-
-    #[tokio::test]
-    async fn cannot_align_is_a_miss() {
-        let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 5).await;
-        assert!(
-            cache
-                .try_run("notes", "delete the downloads", &Mock::new(vec![]))
-                .await
-                .is_none()
-        );
-        assert!(
-            cache
-                .try_run("other", "read zed.txt", &Mock::new(vec![]))
-                .await
-                .is_none()
-        );
-    }
-
-    #[tokio::test]
-    async fn nested_and_array_slots_fill() {
-        let cache = MemoryCrystalCache::new();
-        for i in 0..5 {
-            let name = format!("n{i}.txt");
-            cache
-                .observe(&trace(
-                    "notes",
-                    &format!("pack {name}"),
+                    "send good morning to bob",
                     &[(
-                        "fs.pack",
-                        json!({"file": {"path": name}, "also": [name, "literal"]}),
+                        "mail.send",
+                        json!({"body": "good morning", "to": "bob"}),
+                        json!(true),
                     )],
-                    true,
                 ))
                 .await;
         }
+        assert!(
+            cache.crystals()[0].anchors.is_empty(),
+            "{:?}",
+            cache.crystals()[0].anchors
+        );
         let run = cache
-            .try_run("notes", "pack zed.txt", &Mock::new(vec![]))
+            .try_run(
+                &query("mail", "send good morning to bob"),
+                &Mock::new(vec![json!(true)]),
+            )
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(
-            run.steps[0].call.args,
-            json!({"file": {"path": "zed.txt"}, "also": ["zed.txt", "literal"]})
+        assert_eq!(run.steps[0].call.args["to"], json!("bob"));
+        assert!(
+            cache
+                .try_run(
+                    &query("mail", "send good morning to ada"),
+                    &Mock::new(vec![])
+                )
+                .await
+                .is_none()
         );
     }
 
     #[tokio::test]
-    async fn a_tool_error_is_some_err() {
+    async fn an_untyped_account_must_match() {
         let cache = MemoryCrystalCache::new();
-        for i in 0..5 {
-            let name = format!("f{i}.txt");
+        for _ in 0..5 {
             cache
                 .observe(&trace(
-                    "notes",
-                    &format!("copy {name}"),
-                    &[
-                        ("fs.read", json!({"path": name})),
-                        ("fs.write", json!({"path": name})),
-                    ],
-                    true,
+                    "mail",
+                    "list mail",
+                    &[("mail.list", json!({"account": "work"}), json!({"rows": []}))],
                 ))
                 .await;
         }
-        let mock = Mock::failing(1);
-        let result = cache.try_run("notes", "copy zed.txt", &mock).await;
-        match result {
-            Some(Err(err)) => assert!(err.to_string().contains("tool failed"), "{err}"),
-            other => panic!("expected Some(Err), got {other:?}"),
-        }
-        assert_eq!(mock.seen().len(), 2);
-        assert_eq!(mock.seen()[0].tool, "fs.read");
-        assert_eq!(mock.seen()[1].tool, "fs.write");
-        assert_eq!(cache.crystals().len(), 1);
-    }
-
-    #[test]
-    fn align_is_deterministic_for_anchor_words() {
-        let pattern = vec![
-            PatternToken::Word {
-                text: "send".into(),
-            },
-            PatternToken::Slot { id: 0, width: 1 },
-            PatternToken::Word { text: "to".into() },
-            PatternToken::Slot { id: 1, width: 1 },
-        ];
-        assert_eq!(
-            align(&pattern, "send goodbye to bob"),
-            Some(vec!["goodbye".into(), "bob".into()])
+        assert!(
+            cache.crystals()[0]
+                .anchors
+                .iter()
+                .any(|anchor| anchor.field == "account" && anchor.value == "work")
         );
-        assert_eq!(
-            align(&pattern, "send good morning to bob"),
-            Some(vec!["good morning".into(), "bob".into()])
+        assert!(
+            cache
+                .try_run(&query("mail", "list mail"), &Mock::new(vec![]))
+                .await
+                .is_none()
         );
-        assert_eq!(align(&pattern, "send goodbye to bob please"), None);
-        assert_eq!(align(&pattern, "please send goodbye to bob"), None);
+        let mut work = query("mail", "list mail");
+        work.anchors.push(ContextAnchor {
+            field: "account".into(),
+            value: "work".into(),
+        });
+        assert!(
+            cache
+                .try_run(&work, &Mock::new(vec![json!({"rows": []})]))
+                .await
+                .unwrap()
+                .is_ok()
+        );
     }
 
     #[tokio::test]
     async fn a_tool_error_flags_the_crystal_and_keeps_it() {
         let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 5).await;
+        observe_same(&cache, 5).await;
         let id = cache.crystals()[0].crystal_id.clone();
-        assert!(cache.flagged().is_empty());
-
         let failed = cache
-            .try_run("notes", "read zed.txt", &Mock::failing(0))
+            .try_run(&query("notes", "read notes.txt"), &Mock::failing(0))
             .await;
         assert!(matches!(failed, Some(Err(_))));
         assert_eq!(cache.flagged(), vec![id.clone()]);
-
-        let _ = cache
-            .try_run("notes", "read zed.txt", &Mock::failing(0))
-            .await;
-        assert_eq!(cache.flagged(), vec![id]);
-
+        assert_eq!(cache.crystals().len(), 1);
         let ok = cache
-            .try_run("notes", "read zed.txt", &Mock::new(vec![json!(1)]))
+            .try_run(
+                &query("notes", "read notes.txt"),
+                &Mock::new(vec![json!(1)]),
+            )
             .await;
         assert!(matches!(ok, Some(Ok(_))));
-        assert_eq!(cache.crystals().len(), 1);
     }
 
     #[tokio::test]
-    async fn source_and_diff_show_the_plan() {
+    async fn import_keeps_the_context_key_and_drops_the_old_one() {
         let cache = MemoryCrystalCache::new();
-        observe_reads(&cache, 5).await;
+        observe_same(&cache, 5).await;
+        let crystal = cache.crystals()[0].clone();
+
+        let fresh = MemoryCrystalCache::new();
+        fresh.import(std::slice::from_ref(&crystal));
+        assert_eq!(fresh.crystals().len(), 1);
+        assert!(
+            fresh
+                .try_run(
+                    &query("notes", "read notes.txt"),
+                    &Mock::new(vec![json!(1)])
+                )
+                .await
+                .unwrap()
+                .is_ok()
+        );
+
+        let mut version_one = crystal.clone();
+        version_one.version = 1;
+        version_one.crystal_id = "crystal:notes:fs.read:v1:old".into();
+        let rejected = MemoryCrystalCache::new();
+        rejected.import(&[version_one]);
+        assert!(rejected.crystals().is_empty());
+        assert!(
+            rejected
+                .try_run(&query("notes", "read notes.txt"), &Mock::new(vec![]))
+                .await
+                .is_none()
+        );
+
+        let mut wording_only = crystal.clone();
+        wording_only.charter_generation.clear();
+        wording_only.crystal_id = "wording-only".into();
+        rejected.import(&[wording_only]);
+        assert!(rejected.crystals().is_empty());
+    }
+
+    #[tokio::test]
+    async fn source_shows_the_context_key() {
+        let cache = MemoryCrystalCache::new();
+        observe_same(&cache, 5).await;
         let crystal = &cache.crystals()[0];
         let text = crystal.source();
+        assert!(text.contains("wording: read notes.txt"), "{text}");
+        assert!(text.contains("charter: gen"), "{text}");
         assert!(text.contains("step: fs.read"), "{text}");
-        assert!(text.contains("{0}"), "{text}");
-        assert!(text.contains("intent: read f0.txt"), "{text}");
+        assert!(!text.contains("{0}"), "{text}");
 
         let mut other = crystal.clone();
-        other.plan.intent = "read other.txt".into();
+        other.charter_generation = "later".into();
+        other.crystal_id = "other".into();
         let delta = diff(crystal, &other);
-        assert!(delta.contains("-intent: read f0.txt"), "{delta}");
-        assert!(delta.contains("+intent: read other.txt"), "{delta}");
+        assert!(delta.contains("-charter: gen"), "{delta}");
+        assert!(delta.contains("+charter: later"), "{delta}");
     }
 }

@@ -4594,9 +4594,11 @@ name = "tauri-plugin-android-bridge"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "serde",
  "serde_json",
  "tauri",
  "tauri-plugin",
+ "thiserror 2.0.21",
  "xz-types",
 ]
 
@@ -6292,7 +6294,9 @@ dependencies = [
  "tracing-subscriber",
  "winreg 0.55.0",
  "xinod",
+ "xz-android",
  "xz-core",
+ "xz-cortex",
  "xz-engram",
  "xz-genome",
  "xz-types",
@@ -6316,6 +6320,17 @@ name = "xkeysym"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
+
+[[package]]
+name = "xz-android"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "xz-cortex",
+ "xz-hive",
+ "xz-types",
+]
 
 [[package]]
 name = "xz-boot"

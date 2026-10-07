@@ -1,0 +1,6 @@
+src/main/cpp/llama.cpp/
+.cxx/
+build/
+src/main/assets/models/*.gguf
+
+.tauri/

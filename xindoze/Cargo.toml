@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "shell/src-tauri"]
+members = ["crates/*", "shell/src-tauri", "shell/plugins/android-bridge"]
 
 [workspace.package]
 version = "0.1.0"

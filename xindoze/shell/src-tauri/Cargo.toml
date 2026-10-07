@@ -15,17 +15,19 @@ name = "xindoze_shell_lib"
 crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "~2.6.3", features = [] }
 
 [dependencies]
 xz-types.workspace = true
+xz-android = { path = "../../crates/android" }
+xz-cortex = { path = "../../crates/cortex" }
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "~2.11.6", features = ["tray-icon"] }
 tauri-plugin-android-bridge = { path = "../plugins/android-bridge" }
 xinod = { path = "../../crates/xinod" }
 xz-core = { path = "../../crates/core" }

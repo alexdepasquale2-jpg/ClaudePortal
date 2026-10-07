@@ -1,0 +1,14 @@
+[package]
+name = "xz-android"
+description = "Android companion: safety, Hive pairing, and where a question runs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+xz-types.workspace = true
+xz-hive = { path = "../hive" }
+xz-cortex = { path = "../cortex" }
+serde.workspace = true
+serde_json.workspace = true
